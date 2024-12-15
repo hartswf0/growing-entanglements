@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Information Architecture Navigator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .nav-menu {
+            padding: 5px;
+            background: #2d2d2d;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            z-index: 100;
+        }
+        .nav-menu a {
+            color: #d4d4d4;
+            text-decoration: none;
+            margin-right: 15px;
+            padding: 5px;
+        }
+        .nav-menu a:hover {
+            background: #3d3d3d;
+            border-radius: 3px;
+        }
+        .search-bar {
+            padding: 5px;
+            background: #2d2d2d;
+            border: none;
+            border-radius: 4px;
+            color: #d4d4d4;
+            margin-bottom: 10px;
+        }
+        .columns-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 40px;
+            width: 100%;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        .column {
+            background: #2d2d2d;
+            border-radius: 8px;
+            overflow-y: auto;
+            padding: 10px;
+            position: relative;
+            min-width: 200px;
+            flex: 1;
+            transition: flex 0.3s;
+        }
+        .column.collapsed {
+            flex: 0;
+            min-width: 40px;
+            padding: 10px 5px;
+        }
+        .column.collapsed .item,
+        .column.collapsed .description {
+            display: none;
+        }
+        .column.collapsed h2 {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            margin: 0;
+            cursor: pointer;
+        }
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            cursor: move;
+        }
+        .column-controls {
+            display: flex;
+            gap: 5px;
+        }
+        .column-button {
+            background: #3c3c3c;
+            border: none;
+            color: #d4d4d4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .column-button:hover {
+            background: #4c4c4c;
+        }
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 5px;
+            height: 100%;
+            cursor: ew-resize;
+            background: transparent;
+        }
+        .resize-handle:hover {
+            background: #4a90e2;
+        }
+        h2 {
+            color: #9cdcfe;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1em;
+            user-select: none;
+        }
+        .item {
+            padding: 5px;
+            margin: 5px 0;
+            background: #3c3c3c;
+            border-radius: 4px;
+            position: relative;
+            cursor: pointer;
+        }
+        .description {
+            font-size: 0.9em;
+            color: #a0a0a0;
+        }
+        .entity { border-left: 4px solid #4a90e2; }
+        .sub-entity { border-left: 4px solid #e67e22; }
+        .morphism { border-left: 4px solid #2ecc71; }
+        .action { border-left: 4px solid #f39c12; }
+        .highlight { background: #555; }
+        .line {
+            position: absolute;
+            width: 2px;
+            background: #9cdcfe;
+            z-index: -1;
+        }
+        .syntax-highlight {
+            color: #569cd6;
+            font-weight: bold;
+            padding: 0 2px;
+        }
+        .syntax-special {
+            color: #569cd6;
+            font-weight: bold;
+            background: rgba(86, 156, 214, 0.1);
+            padding: 0 4px;
+            border-radius: 3px;
+            margin: 0 2px;
+        }
+        .action-verb {
+            color: #ffffff;
+            font-weight: bold;
+        }
+        .action-details {
+            font-weight: normal;
+            color: #c0c0c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-menu">
+        <a href="index.html">Home</a>
+        <a href="Resistance-Topology-Visualization.html">Visualization</a>
+        <a href="reference.txt">References</a>
+    </div>
+    <input type="text" class="search-bar" placeholder="Search..." id="searchBar">
+    <div class="columns-container">
+        <div class="column" id="entitiesColumn">
+            <div class="column-header">
+                <h2>Entities</h2>
+                <div class="column-controls">
+                    <button class="column-button collapse-btn" title="Collapse/Expand">⮝</button>
+                </div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+        <div class="column" id="subEntitiesColumn">
+            <div class="column-header">
+                <h2>Sub-Entities</h2>
+                <div class="column-controls">
+                    <button class="column-button collapse-btn" title="Collapse/Expand">⮝</button>
+                </div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+        <div class="column" id="morphismsColumn">
+            <div class="column-header">
+                <h2>Morphisms</h2>
+                <div class="column-controls">
+                    <button class="column-button collapse-btn" title="Collapse/Expand">⮝</button>
+                </div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+        <div class="column" id="actionsColumn">
+            <div class="column-header">
+                <h2>Actions</h2>
+                <div class="column-controls">
+                    <button class="column-button collapse-btn" title="Collapse/Expand">⮝</button>
+                </div>
+            </div>
+            <div class="resize-handle"></div>
+        </div>
+    </div>
+
+    <script>
+        // Load and process the data
+        fetch('o1.json')
+            .then(response => response.json())
+            .then(function(data) {
+                const entitiesColumn = document.getElementById('entitiesColumn');
+                const subEntitiesColumn = document.getElementById('subEntitiesColumn');
+                const morphismsColumn = document.getElementById('morphismsColumn');
+                const actionsColumn = document.getElementById('actionsColumn');
+
+                function addItemToColumn(container, itemName, description = '', className, onClick) {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `item ${className}`;
+                    const nameElement = document.createElement('strong');
+                    
+                    if (className === 'action') {
+                        // For actions, parse and style the text
+                        const parts = itemName.split(':');
+                        const verbPart = document.createElement('span');
+                        verbPart.className = 'action-verb';
+                        verbPart.textContent = parts[0] + ': ';
+                        nameElement.appendChild(verbPart);
+
+                        // Rest of the text
+                        const detailsPart = document.createElement('span');
+                        detailsPart.className = 'action-details';
+                        
+                        // Parse and style angle-bracketed text in details
+                        const detailText = parts.slice(1).join(':');
+                        const detailParts = detailText.match(/<[^>]+>|[^<]+/g) || [detailText];
+                        detailParts.forEach(part => {
+                            if (part.startsWith('<') && part.endsWith('>')) {
+                                const special = document.createElement('span');
+                                special.className = 'syntax-special';
+                                special.textContent = part;
+                                detailsPart.appendChild(special);
+                            } else {
+                                detailsPart.appendChild(document.createTextNode(part));
+                            }
+                        });
+
+                        nameElement.appendChild(detailsPart);
+                    } else {
+                        nameElement.textContent = itemName;
+                    }
+                    
+                    itemDiv.appendChild(nameElement);
+                    if (description) {
+                        const descDiv = document.createElement('div');
+                        descDiv.className = 'description';
+                        descDiv.textContent = description;
+                        itemDiv.appendChild(descDiv);
+                    }
+                    if (onClick) {
+                        itemDiv.addEventListener('click', onClick);
+                    }
+                    container.appendChild(itemDiv);
+                    return itemDiv;
+                }
+
+                function drawLine(fromElement, toElement) {
+                    const line = document.createElement('div');
+                    line.className = 'line';
+                    const fromRect = fromElement.getBoundingClientRect();
+                    const toRect = toElement.getBoundingClientRect();
+                    line.style.height = `${Math.abs(toRect.top - fromRect.top)}px`;
+                    line.style.top = `${Math.min(fromRect.top, toRect.top)}px`;
+                    line.style.left = `${fromRect.right}px`;
+                    document.body.appendChild(line);
+                }
+
+                function alignFamilyMembers(elements) {
+                    // Get all columns
+                    const columns = document.querySelectorAll('.column');
+                    
+                    // Find the clicked element and its position
+                    const clickedElement = elements.find(el => el.classList.contains('highlight'));
+                    if (!clickedElement) return;
+                    
+                    const clickedRect = clickedElement.getBoundingClientRect();
+                    const clickedColumn = clickedElement.closest('.column');
+                    const clickedRelativeTop = clickedElement.offsetTop;
+
+                    // For each highlighted element, scroll its column to align with the clicked element
+                    elements.forEach(element => {
+                        if (!element) return;
+                        const column = element.closest('.column');
+                        if (!column) return;
+
+                        // Calculate how much we need to scroll this column
+                        // to align the element with the clicked element
+                        const elementTop = element.offsetTop;
+                        column.scrollTo({
+                            top: elementTop - clickedRelativeTop,
+                            behavior: 'smooth'
+                        });
+                    });
+                }
+
+                function highlightHierarchy(entityElement, subEntityElement, morphismElement, actionElement) {
+                    document.querySelectorAll('.item').forEach(item => item.classList.remove('highlight'));
+                    const elements = [entityElement, subEntityElement, morphismElement, actionElement].filter(Boolean);
+                    elements.forEach(el => el.classList.add('highlight'));
+                    alignFamilyMembers(elements);
+                }
+
+                function formatActionText(action) {
+                    if (typeof action === 'string') return action;
+                    
+                    // Convert action to string, but clean it up
+                    return Object.entries(action)
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(', ')
+                        .replace(/\\"/g, '"')   // Fix escaped quotes
+                        .replace(/\\"|\\/g, '"'); // Fix other escaped characters
+                }
+
+                if (data && data.data) {
+                    data.data.forEach(section => {
+                        if (section.entities) {
+                            section.entities.forEach(entity => {
+                                const entityElement = addItemToColumn(entitiesColumn, entity.name, entity.description, 'entity');
+                                const entityDownstream = { subEntities: [], morphisms: [], actions: [] };
+                                
+                                if (entity.entities) {
+                                    entity.entities.forEach(subEntity => {
+                                        const subEntityElement = addItemToColumn(subEntitiesColumn, subEntity.name, subEntity.description, 'sub-entity');
+                                        const subEntityDownstream = { morphisms: [], actions: [] };
+                                        
+                                        entityDownstream.subEntities.push(subEntityElement);
+                                        drawLine(entityElement, subEntityElement);
+
+                                        if (subEntity.morphisms) {
+                                            subEntity.morphisms.forEach(morphism => {
+                                                const morphismElement = addItemToColumn(morphismsColumn, morphism.name, morphism.description, 'morphism');
+                                                entityDownstream.morphisms.push(morphismElement);
+                                                subEntityDownstream.morphisms.push(morphismElement);
+                                                drawLine(subEntityElement, morphismElement);
+
+                                                if (morphism.actions) {
+                                                    morphism.actions.forEach(action => {
+                                                        const actionElement = addItemToColumn(actionsColumn, formatActionText(action), '', 'action', () => {
+                                                            highlightHierarchy(entityElement, subEntityElement, morphismElement, actionElement);
+                                                        });
+                                                        entityDownstream.actions.push(actionElement);
+                                                        subEntityDownstream.actions.push(actionElement);
+                                                        drawLine(morphismElement, actionElement);
+                                                    });
+                                                }
+
+                                                // Add click handler for morphism
+                                                morphismElement.addEventListener('click', () => {
+                                                    document.querySelectorAll('.item').forEach(item => item.classList.remove('highlight'));
+                                                    [entityElement, subEntityElement, morphismElement, ...entityDownstream.actions].forEach(el => {
+                                                        if (el) el.classList.add('highlight');
+                                                    });
+                                                    alignFamilyMembers([entityElement, subEntityElement, morphismElement, ...entityDownstream.actions].filter(Boolean));
+                                                });
+                                            });
+                                        }
+
+                                        subEntityElement.addEventListener('click', () => {
+                                            document.querySelectorAll('.item').forEach(item => item.classList.remove('highlight'));
+                                            const elements = [
+                                                entityElement,
+                                                subEntityElement,
+                                                ...subEntityDownstream.morphisms,
+                                                ...subEntityDownstream.actions
+                                            ];
+                                            elements.forEach(el => el.classList.add('highlight'));
+                                            alignFamilyMembers(elements);
+                                        });
+                                    });
+                                }
+
+                                entityElement.addEventListener('click', () => {
+                                    document.querySelectorAll('.item').forEach(item => item.classList.remove('highlight'));
+                                    const elements = [
+                                        entityElement,
+                                        ...entityDownstream.subEntities,
+                                        ...entityDownstream.morphisms,
+                                        ...entityDownstream.actions
+                                    ];
+                                    elements.forEach(el => el.classList.add('highlight'));
+                                    alignFamilyMembers(elements);
+                                });
+                            });
+                        }
+                    });
+                }
+
+                // Search functionality
+                const searchBar = document.getElementById('searchBar');
+                searchBar.addEventListener('input', function() {
+                    const searchTerm = searchBar.value.toLowerCase();
+                    document.querySelectorAll('.item').forEach(item => {
+                        item.style.display = item.textContent.toLowerCase().includes(searchTerm) ? 'block' : 'none';
+                    });
+                });
+
+                // Initialize column controls after data is loaded
+                initializeColumnControls();
+            })
+            .catch(error => {
+                console.error('Error loading data:', error);
+            });
+
+        // Column management functionality
+        function initializeColumnControls() {
+            const columnsContainer = document.querySelector('.columns-container');
+            const columns = document.querySelectorAll('.column');
+
+            // Initialize column collapse buttons
+            document.querySelectorAll('.collapse-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const column = e.target.closest('.column');
+                    column.classList.toggle('collapsed');
+                    btn.textContent = column.classList.contains('collapsed') ? '⮟' : '⮝';
+                    updateLines();
+                });
+            });
+
+            // Initialize column dragging
+            columns.forEach(column => {
+                const header = column.querySelector('.column-header');
+                header.addEventListener('mousedown', (e) => {
+                    if (e.target.classList.contains('column-button')) return;
+                    
+                    const startX = e.clientX;
+                    const columnRect = column.getBoundingClientRect();
+                    const columnIndex = Array.from(columns).indexOf(column);
+                    let currentX = startX;
+                    
+                    function onMouseMove(e) {
+                        const diff = e.clientX - currentX;
+                        currentX = e.clientX;
+                        
+                        // Find the column we're potentially swapping with
+                        const targetX = e.clientX;
+                        const siblings = Array.from(columns);
+                        const targetIndex = siblings.findIndex((sibling, index) => {
+                            if (index === columnIndex) return false;
+                            const rect = sibling.getBoundingClientRect();
+                            return targetX >= rect.left && targetX <= rect.right;
+                        });
+                        
+                        if (targetIndex !== -1 && targetIndex !== columnIndex) {
+                            // Swap columns
+                            if (targetIndex < columnIndex) {
+                                columnsContainer.insertBefore(column, siblings[targetIndex]);
+                            } else {
+                                columnsContainer.insertBefore(column, siblings[targetIndex].nextSibling);
+                            }
+                            updateLines();
+                        }
+                    }
+                    
+                    function onMouseUp() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    }
+                    
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+            });
+
+            // Initialize column resizing
+            columns.forEach(column => {
+                const handle = column.querySelector('.resize-handle');
+                handle.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    const startX = e.clientX;
+                    const startWidth = column.offsetWidth;
+                    
+                    function onMouseMove(e) {
+                        const diff = e.clientX - startX;
+                        column.style.flex = 'none';
+                        column.style.width = `${startWidth + diff}px`;
+                        updateLines();
+                    }
+                    
+                    function onMouseUp() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    }
+                    
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+            });
+        }
+
+        // Update lines when columns change
+        function updateLines() {
+            // Remove existing lines
+            document.querySelectorAll('.line').forEach(line => line.remove());
+            
+            // Redraw lines between visible elements
+            document.querySelectorAll('.item').forEach(item => {
+                const nextItem = item.nextElementSibling;
+                if (nextItem && !item.closest('.column').classList.contains('collapsed')) {
+                    drawLine(item, nextItem);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

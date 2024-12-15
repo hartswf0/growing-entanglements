@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Captain Cook's Death - Resistance Topology</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Base styles from index.html */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: 'IBM Plex Mono', monospace;
+            color: #e0e0e0;
+        }
+
+        #monitor-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #333;
+            border: none;
+            color: #00ff00;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 100;
+        }
+
+        #monitor-toggle:hover {
+            background: #444;
+            color: #00ff33;
+        }
+
+        svg {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            overflow: visible;
+        }
+
+        /* Monitor container styles */
+        #narrative-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 26, 0.95);
+            border-top: 2px solid #333;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 150px;
+            max-height: 80vh;
+            overflow: hidden;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        #narrative-container.visible {
+            transform: translateY(0);
+        }
+
+        #narrative-header {
+            flex: 0 0 auto;
+            padding: 8px 15px;
+            background: #222;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 40px;
+            box-sizing: border-box;
+        }
+
+        #narrative-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e0e0e0;
+            box-sizing: border-box;
+            height: calc(100% - 40px);
+        }
+
+        /* Node and link styles */
+        .link {
+            stroke: #4a4a4a;
+            stroke-width: 2;
+        }
+
+        .node circle {
+            stroke: #e0e0e0;
+            stroke-width: 2;
+            cursor: pointer;
+        }
+
+        .node text {
+            font-size: 14px;
+            fill: #e0e0e0;
+        }
+
+        /* Behavior styles */
+        .behavior-text {
+            font-size: 12px;
+            fill: #A9A9A9;
+        }
+
+        /* Export button */
+        #narrative-export {
+            background: #333;
+            border: none;
+            color: #00ff00;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #narrative-export:hover {
+            background: #444;
+            color: #00ff33;
+        }
+    </style>
+</head>
+<body>
+    <button id="monitor-toggle">Show Monitor</button>
+    <svg></svg>
+    <div class="tooltip"></div>
+    <div id="narrative-container">
+        <div id="log-resize-handle"></div>
+        <div id="narrative-header">
+            <div id="narrative-title">Cook Scenario Monitor [RT-1779]</div>
+            <div id="narrative-controls">
+                <button id="narrative-export">Export Log</button>
+            </div>
+        </div>
+        <div id="narrative-log"></div>
+    </div>
+
+    <script>
+        // Initialize SVG dimensions
+        const svg = d3.select("svg");
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        svg.attr("width", width).attr("height", height);
+
+        // Define the entities for Cook's scenario
+        const entities = [
+            { id: "cook", name: "Captain Cook", type: "british", x: width/2, y: height/3 },
+            { id: "hawaiians", name: "Hawaiian Warriors", type: "native", x: width/3, y: height/2 },
+            { id: "king", name: "King Kalaniʻōpuʻu", type: "native", x: 2*width/3, y: height/2 },
+            { id: "priests", name: "Hawaiian Priests", type: "native", x: width/2, y: 2*height/3 },
+            { id: "crew", name: "British Crew", type: "british", x: width/3, y: height/3 }
+        ];
+
+        // Define behaviors specific to Cook scenario
+        const behaviors = [
+            { id: "divine_claim", name: "Divine Status Claim", type: "symbolic" },
+            { id: "resource_control", name: "Resource Control", type: "practical" },
+            { id: "ritual_resistance", name: "Ritual Resistance", type: "symbolic" },
+            { id: "physical_conflict", name: "Physical Conflict", type: "practical" }
+        ];
+
+        // Initialize force simulation
+        const simulation = d3.forceSimulation(entities)
+            .force("link", d3.forceLink().id(d => d.id))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(100));
+
+        // Create links between entities
+        const links = [
+            { source: "cook", target: "king", type: "conflict" },
+            { source: "cook", target: "hawaiians", type: "conflict" },
+            { source: "cook", target: "crew", type: "alliance" },
+            { source: "hawaiians", target: "king", type: "alliance" },
+            { source: "priests", target: "king", type: "alliance" },
+            { source: "priests", target: "hawaiians", type: "alliance" }
+        ];
+
+        // Add links to SVG
+        const link = svg.append("g")
+            .selectAll("line")
+            .data(links)
+            .enter().append("line")
+            .attr("class", "link")
+            .attr("stroke", d => d.type === "alliance" ? "#44ff44" : "#ff4444");
+
+        // Add nodes to SVG
+        const node = svg.append("g")
+            .selectAll(".node")
+            .data(entities)
+            .enter().append("g")
+            .attr("class", "node")
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        node.append("circle")
+            .attr("r", 20)
+            .style("fill", d => d.type === "british" ? "#4444ff" : "#ff8844");
+
+        node.append("text")
+            .attr("dy", 30)
+            .style("text-anchor", "middle")
+            .text(d => d.name);
+
+        // Narrative log entries
+        const narrativeEntries = [
+            {
+                timestamp: "1779-02-14 05:00",
+                type: "symbolic",
+                message: "Hawaiian priests question Cook's divine status as Lono"
+            },
+            {
+                timestamp: "1779-02-14 06:00",
+                type: "practical",
+                message: "Cook attempts to take King Kalaniʻōpuʻu hostage"
+            },
+            {
+                timestamp: "1779-02-14 07:00",
+                type: "resistance",
+                message: "Hawaiian warriors organize collective resistance"
+            },
+            {
+                timestamp: "1779-02-14 08:00",
+                type: "isolation",
+                message: "Cook becomes isolated from his crew on the beach"
+            },
+            {
+                timestamp: "1779-02-14 09:00",
+                type: "estrangement",
+                message: "Cultural misunderstanding reaches critical point"
+            }
+        ];
+
+        // Monitor visibility control
+        const monitorToggle = document.getElementById('monitor-toggle');
+        const narrativeContainer = document.getElementById('narrative-container');
+        let isMonitorVisible = false;
+
+        function toggleMonitor() {
+            isMonitorVisible = !isMonitorVisible;
+            narrativeContainer.classList.toggle('visible', isMonitorVisible);
+            monitorToggle.textContent = isMonitorVisible ? 'Hide Monitor' : 'Show Monitor';
+            
+            // Adjust SVG height
+            svg.style.height = isMonitorVisible ? 'calc(100vh - 300px)' : '100vh';
+            
+            // Force update visualization
+            simulation.alpha(0.3).restart();
+        }
+        
+        monitorToggle.addEventListener('click', toggleMonitor);
+
+        // Update narrative log
+        function updateNarrativeLog() {
+            const log = d3.select("#narrative-log");
+            
+            narrativeEntries.forEach(entry => {
+                const div = log.append("div")
+                    .attr("class", "log-entry " + entry.type);
+                
+                div.append("span")
+                    .attr("class", "log-timestamp")
+                    .text(entry.timestamp);
+                
+                div.append("span")
+                    .attr("class", "log-type")
+                    .text(entry.type.toUpperCase());
+                
+                div.append("span")
+                    .attr("class", "log-message")
+                    .text(entry.message);
+            });
+        }
+
+        // Simulation tick function
+        simulation
+            .nodes(entities)
+            .on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+
+        simulation.force("link")
+            .links(links);
+
+        // Drag functions
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        // Initialize narrative log
+        updateNarrativeLog();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            
+            if (isMonitorVisible) {
+                const currentHeight = parseInt(narrativeContainer.style.height || '300');
+                svg.style.height = `calc(100vh - ${currentHeight}px)`;
+            } else {
+                svg.style.height = '100vh';
+            }
+            
+            svg.attr('width', width);
+            simulation.force("center", d3.forceCenter(width / 2, height / 2));
+            simulation.alpha(0.3).restart();
+        });
+    </script>
+</body>
+</html>

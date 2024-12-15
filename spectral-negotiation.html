@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spectral Negotiation</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: monospace;
+            color: white;
+        }
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            background: rgba(20,20,40,0.8);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .perspective-lens {
+            width: 300px;
+            height: 20px;
+            appearance: none;
+            background: linear-gradient(to right, rgba(0,255,100,0.5), rgba(0,100,255,0.5));
+            outline: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .perspective-lens::-webkit-slider-thumb {
+            appearance: none;
+            width: 30px;
+            height: 30px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            cursor: pointer;
+        }
+        #overlay {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(20,20,40,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+        }
+        #error-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,0,0,0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay">
+        <h3>Spectral Negotiation</h3>
+        <p>Manipulate perspectives. Explore the space between presence and absence.</p>
+    </div>
+    <div id="error-message"></div>
+    <div id="controls">
+        <input type="range" id="hawaiianLens" class="perspective-lens" min="0" max="1" step="0.01" value="0.5">
+        <input type="range" id="britishLens" class="perspective-lens" min="0" max="1" step="0.01" value="0.5">
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script>
+        // Enhanced library loading diagnostics
+        window.addEventListener('load', function() {
+            console.log('Page loaded. Checking library availability...');
+            
+            // Detailed library loading check
+            function checkLibraries() {
+                const libraries = [
+                    { name: 'Three.js', global: 'THREE', cdn: 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js' },
+                    { name: 'GSAP', global: 'gsap', cdn: 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js' }
+                ];
+
+                libraries.forEach(lib => {
+                    if (typeof window[lib.global] === 'undefined') {
+                        console.error(`${lib.name} failed to load from CDN: ${lib.cdn}`);
+                        
+                        // Fallback mechanism
+                        const fallbackScript = document.createElement('script');
+                        fallbackScript.src = `libs/${lib.global.toLowerCase()}.min.js`;
+                        fallbackScript.onerror = () => {
+                            console.error(`Local fallback for ${lib.name} also failed`);
+                            
+                            // Create a visible error message
+                            const errorDiv = document.createElement('div');
+                            errorDiv.style.position = 'fixed';
+                            errorDiv.style.top = '0';
+                            errorDiv.style.left = '0';
+                            errorDiv.style.width = '100%';
+                            errorDiv.style.backgroundColor = 'red';
+                            errorDiv.style.color = 'white';
+                            errorDiv.style.padding = '10px';
+                            errorDiv.style.textAlign = 'center';
+                            errorDiv.style.zIndex = '9999';
+                            errorDiv.innerHTML = `Failed to load ${lib.name}. Please check your internet connection or browser settings.`;
+                            document.body.insertBefore(errorDiv, document.body.firstChild);
+                        };
+                        document.head.appendChild(fallbackScript);
+                    } else {
+                        console.log(`${lib.name} loaded successfully`);
+                    }
+                });
+            }
+
+            // Run library check
+            checkLibraries();
+        });
+
+        // Additional page load diagnostics
+        window.addEventListener('error', function(event) {
+            console.error('Unhandled error:', event.message, 'at', event.filename, 'line', event.lineno);
+        });
+    </script>
+
+    <!-- Main application code -->
+    <script>
+        function initializeSpectralNavigator() {
+            console.log('Initializing Spectral Navigator...');
+            // Configuration object to centralize and easily modify parameters
+            const SpectralConfig = {
+                scene: {
+                    backgroundColor: 0x000000,
+                    cameraFOV: 75,
+                    cameraNearClip: 0.1,
+                    cameraFarClip: 1000,
+                    cameraZ: 7
+                },
+                particles: {
+                    density: 10000,
+                    size: 0.03
+                },
+                prisms: [
+                    {
+                        name: 'hawaiian',
+                        color: new THREE.Color(0, 1, 0.5),
+                        position: new THREE.Vector3(-3, 0, 0),
+                        rotation: { x: Math.PI / 4 }
+                    },
+                    {
+                        name: 'british',
+                        color: new THREE.Color(0.2, 0.4, 1),
+                        position: new THREE.Vector3(3, 0, 0),
+                        rotation: { x: Math.PI / 4 }
+                    }
+                ],
+                lighting: {
+                    ambient: { color: 0x404040 },
+                    directional: { 
+                        color: 0xffffff, 
+                        intensity: 0.5,
+                        position: { x: 0, y: 1, z: 1 }
+                    }
+                },
+                animation: {
+                    hawaiianRotationY: 0.005,
+                    britishRotationX: -0.003,
+                    scalePulseFrequency: 1
+                }
+            };
+
+            try {
+                // Refactored prism creation with more flexibility
+                function createPerspectivePrism(config) {
+                    const group = new THREE.Group();
+                    
+                    // Prism geometry with configurable parameters
+                    const prismGeometry = new THREE.ConeGeometry(2, 4, 4);
+                    const prismMaterial = new THREE.MeshPhongMaterial({
+                        color: config.color,
+                        transparent: true,
+                        opacity: 0.3,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const prismMesh = new THREE.Mesh(prismGeometry, prismMaterial);
+                    group.add(prismMesh);
+
+                    // Particle system within the prism
+                    const particleGeometry = new THREE.BufferGeometry();
+                    const particlePositions = new Float32Array(SpectralConfig.particles.density * 3);
+                    const particleColors = new Float32Array(SpectralConfig.particles.density * 3);
+
+                    for (let i = 0; i < SpectralConfig.particles.density; i++) {
+                        // Generate particles within a cone-like distribution
+                        const r = Math.random() * 2;
+                        const theta = Math.random() * Math.PI * 2;
+                        const phi = Math.random() * Math.PI / 2;
+
+                        particlePositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                        particlePositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                        particlePositions[i * 3 + 2] = r * Math.cos(phi);
+
+                        // Color particles
+                        particleColors[i * 3] = config.color.r;
+                        particleColors[i * 3 + 1] = config.color.g;
+                        particleColors[i * 3 + 2] = config.color.b;
+                    }
+
+                    particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+                    particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+                    const particleMaterial = new THREE.PointsMaterial({
+                        size: SpectralConfig.particles.size,
+                        vertexColors: true,
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        opacity: 0.7
+                    });
+
+                    const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+                    group.add(particleSystem);
+
+                    // Position and rotate
+                    group.position.copy(config.position);
+                    group.rotation.x = config.rotation.x;
+
+                    return { 
+                        group, 
+                        particleSystem, 
+                        prismMesh,
+                        config 
+                    };
+                }
+
+                // Main initialization function
+                function init() {
+                    // Scene setup with configurable parameters
+                    const scene = new THREE.Scene();
+                    scene.background = new THREE.Color(SpectralConfig.scene.backgroundColor);
+                    
+                    const camera = new THREE.PerspectiveCamera(
+                        SpectralConfig.scene.cameraFOV, 
+                        window.innerWidth / window.innerHeight, 
+                        SpectralConfig.scene.cameraNearClip, 
+                        SpectralConfig.scene.cameraFarClip
+                    );
+                    camera.position.z = SpectralConfig.scene.cameraZ;
+
+                    // Renderer
+                    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    document.body.appendChild(renderer.domElement);
+
+                    // Lighting with configurable parameters
+                    const ambientLight = new THREE.AmbientLight(
+                        SpectralConfig.lighting.ambient.color
+                    );
+                    scene.add(ambientLight);
+
+                    const directionalLight = new THREE.DirectionalLight(
+                        SpectralConfig.lighting.directional.color, 
+                        SpectralConfig.lighting.directional.intensity
+                    );
+                    directionalLight.position.set(
+                        SpectralConfig.lighting.directional.position.x,
+                        SpectralConfig.lighting.directional.position.y,
+                        SpectralConfig.lighting.directional.position.z
+                    );
+                    scene.add(directionalLight);
+
+                    // Create perspective prisms dynamically from configuration
+                    const prisms = SpectralConfig.prisms.map(prismConfig => 
+                        createPerspectivePrism(prismConfig)
+                    );
+
+                    // Create intersection field
+                    const intersectionGeometry = new THREE.SphereGeometry(2, 32, 32);
+                    const intersectionMaterial = new THREE.MeshBasicMaterial({
+                        color: 0xffffff,
+                        transparent: true,
+                        opacity: 0,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const intersectionField = new THREE.Mesh(intersectionGeometry, intersectionMaterial);
+                    intersectionField.position.set(0, 0, 0);
+                    
+                    // Add to scene
+                    prisms.forEach(prism => scene.add(prism.group));
+                    scene.add(intersectionField);
+
+                    // Interaction and animation setup
+                    setupInteractions(prisms, intersectionField, scene, camera, renderer);
+                }
+
+                function setupInteractions(prisms, intersectionField, scene, camera, renderer) {
+                    const hawaiianLens = document.getElementById('hawaiianLens');
+                    const britishLens = document.getElementById('britishLens');
+
+                    function updatePerspectives() {
+                        const hawaiianIntensity = parseFloat(hawaiianLens.value);
+                        const britishIntensity = parseFloat(britishLens.value);
+
+                        // Update prisms dynamically
+                        prisms.forEach(prism => {
+                            const lensByName = {
+                                'hawaiian': hawaiianIntensity,
+                                'british': britishIntensity
+                            }[prism.config.name];
+
+                            prism.prismMesh.material.opacity = lensByName * 0.3;
+                            prism.particleSystem.material.opacity = lensByName * 0.7;
+                        });
+
+                        // Create intersection effect
+                        const intersectionIntensity = hawaiianIntensity * britishIntensity;
+                        intersectionField.material.opacity = intersectionIntensity;
+                        intersectionField.scale.set(
+                            1 + intersectionIntensity * 2, 
+                            1 + intersectionIntensity * 2, 
+                            1 + intersectionIntensity * 2
+                        );
+                    }
+
+                    hawaiianLens.addEventListener('input', updatePerspectives);
+                    britishLens.addEventListener('input', updatePerspectives);
+
+                    // Animation loop
+                    function animate() {
+                        requestAnimationFrame(animate);
+
+                        // Subtle rotation and movement
+                        prisms.forEach((prism, index) => {
+                            const animConfig = SpectralConfig.animation;
+                            const rotationModifiers = [
+                                { y: animConfig.hawaiianRotationY },
+                                { x: animConfig.britishRotationX }
+                            ];
+
+                            const rotation = rotationModifiers[index];
+                            if (rotation.y !== undefined) prism.group.rotation.y += rotation.y;
+                            if (rotation.x !== undefined) prism.group.rotation.x += rotation.x;
+
+                            // Pulsing effect
+                            const time = Date.now() * 0.001 * animConfig.scalePulseFrequency;
+                            prism.group.scale.set(
+                                1 + Math.sin(time * (index + 1)) * 0.05, 
+                                1 + Math.cos(time * (index + 1.2)) * 0.05, 
+                                1 + Math.sin(time * (index + 1.4)) * 0.05
+                            );
+                        });
+
+                        renderer.render(scene, camera);
+                    }
+
+                    // Window resize handler
+                    window.addEventListener('resize', () => {
+                        camera.aspect = window.innerWidth / window.innerHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(window.innerWidth, window.innerHeight);
+                    });
+
+                    animate();
+                }
+
+                // Initialize on load
+                init();
+            } catch (error) {
+                console.error(`Runtime error: ${error.message}`);
+            }
+        }
+    </script>
+
+    <script>
+        // Start loading process
+        console.log('Starting application initialization...');
+        initializeSpectralNavigator();
+    </script>
+</body>
+</html>

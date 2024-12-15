@@ -1,0 +1,59 @@
+Alcamo, J., Kok, K., Busch, G., & Priess, J. (2008). Methods for translating narrative scenarios into quantitative assessments of land use change. Environmental Modelling & Software, 23(7), 985-997. https://doi.org/10.1016/j.envsoft.2008.01.010
+Axelrod, R. (1997). The dissemination of culture: A model with local convergence and global polarization. Journal of Conflict Resolution, 41(2), 203–226. https://doi.org/10.1177/0022002797041002001
+Axtell, R. L., & Farmer, J. D. (2022). Agent-based modeling in economics and finance: Past, present, and future. INET Oxford Working Paper No. 2022-10. Retrieved from https://oms-inet.files.svdcdn.com/staging/files/JEL-v2.0.pdf
+Barad, K. (2007). Meeting the Universe Halfway: Quantum Physics and the Entanglement of Matter and Meaning. Duke University Press. https://doi.org/10.1515/9780822388128
+Barad, K. (2007). Meeting the Universe Halfway: Quantum Physics and the Entanglement of Matter and Meaning. Duke University Press.
+Barsalou, L. W. (2023). Implications of grounded cognition for conceptual processing across cultures. Topics in Cognitive Science. Advance online publication. https://www.barsaloulab.org/Online_Articles/2023-Barsalou-TOPICS-grounding_across_cultures.pdf
+Bellingham, R. (2022). A diffractive and decolonising reading methodology for education research. Australian Journal of Environmental Education, 38(1), 1–15. https://doi.org/10.1017/aee.2022.24
+Bharwani, S. (2006). Understanding complex behavior and decision making using ethnographic knowledge elicitation tools for agent-based modeling. Ecological Modelling, 194(1-3), 92-102. https://doi.org/10.1016/j.ecolmodel.2005.10.028
+Bharwani, S. (2018). Structuring qualitative data for agent-based modelling. Journal of Artificial Societies and Social Simulation, 26(1), 10. https://www.jasss.org/26/1/10.html
+Bonabeau, E. (2002). Agent-based modeling: Methods and techniques for simulating human systems. Proceedings of the National Academy of Sciences of the United States of America, 99(Suppl 3), 7280–7287. https://doi.org/10.1073/pnas.082080899
+Boutyline, A., & Soter, L. K. (2021). Cultural Schemas: What They Are, How to Find Them, and What to Do Once You’ve Caught One. American Sociological Review, 86(4), 728-758. https://doi.org/10.1177/00031224211024525
+Bratman, M. E. (1987). Intention, Plans, and Practical Reason. Harvard University Press.
+Brown, S. L., Siegel, L., & Blom, S. M. (2020). Entanglements of matter and meaning: The importance of the philosophy of Karen Barad for environmental education. Australian Journal of Environmental Education, 36(3), 219–233. https://doi.org/10.1017/aee.2019.29
+Castellani, B., & Hafferty, F. W. (2009). Sociology and Complexity Science: A New Field of Inquiry. Springer.
+Cioffi-Revilla, C., & Rouleau, M. (2009). MASON RebeLand: An agent-based model of politics, environment, and insurgency. Proceedings of the Human Behavior-Computational Modeling and Interoperability Conference 2009, 26–33. https://krasnow.gmu.edu/socialcomplexity/files/2015/08/Cioffi-Roleau-RebeLand-paper.pdf
+Doran, J., & Lees, M. (2005). Iruba: An agent-based model of the guerrilla war process. Lecture Notes in Computer Science, 3415, 160–174. https://doi.org/10.1007/978-3-540-32274-0_12
+Epstein, J. M., & Axtell, R. (1996). Growing Artificial Societies: Social Science from the Bottom Up. Brookings Institution Press.
+Epstein, J. M. (1999). Agent-based computational models and generative social science. Complexity, 4(5), 41-60. https://cdanfort.w3.uvm.edu/csc-reading-group/epstein-complexity-1999.pdf
+Epstein, J. M. (2023). Inverse Generative Social Science: Backward to the Future. Journal of Artificial Societies and Social Simulation, 26(2), 9. https://www.jasss.org/26/2/9.html
+Ferguson, N. (1999). Virtual History: Alternatives and Counterfactuals. Penguin Books.
+Flache, A., & Macy, M. W. (2011). Small worlds and cultural polarization. Journal of Mathematical Sociology, 35(1–3), 146–176. https://doi.org/10.1080/0022250X.2010.532261
+Frolichs, K. M. M., Rosenblau, G., & Korn, C. W. (2022). Incorporating social knowledge structures into computational models. Nature Communications, 13, Article 6205. https://doi.org/10.1038/s41467-022-33418-2
+Geertz, C. (1995). Culture War. Retrieved from https://hypergeertz.jku.at.
+Goodman, N. D., Baker, C. L., & Tenenbaum, J. B. (2009). Cause and intent: Social reasoning in causal learning. In Proceedings of the 31st annual conference of the cognitive science society (pp. 2759-2764). Austin, TX: Cognitive Science Society.
+Green, U. M., & Costion, K. E. (Eds.). (2018). Modeling cross-cultural interaction in ancient borderlands. University Press of Florida. https://doi.org/10.5744/florida/9780813056883.001.0001
+Harman, G. (2016). Agential and speculative realism: Remarks on Barad’s ontology. Rhizomes: Cultural Studies in Emerging Knowledge, 30. Retrieved from http://www.rhizomes.net/issue30/harman.html
+Hertz, T., Banitz, T., Martínez-Peña, R., Radosavljevic, S., Lindkvist, E., Johansson, L.-G., Ylikoski, P., & Schlüter, M. (2024). Eliciting the plurality of causal reasoning in social-ecological systems research. Ecology and Society, 29(1), Article 14. https://doi.org/10.5751/ES-14806-290114
+IJCAI. (2020). BDI agent architectures: A survey. Retrieved from https://www.ijcai.org/proceedings/2020/0684.pdf
+Jagiello, R., Heyes, C., & Whitehouse, H. (2022). Tradition and invention: The bifocal stance theory of cultural evolution. Behavioral and Brain Sciences. Advance online publication. https://doi.org/10.1017/S0140525X22000383
+Klemm, K., Eguiluz, V. M., Toral, R., & San Miguel, M. (2007). Layered social influence promotes multiculturality in the Axelrod model. Nature Scientific Reports, 7, 2040. https://www.nature.com/articles/s41598-017-02040-4
+Lazar, A., Jelen, B., Pradhan, A., & Siek, K. A. (2021). Adopting Diffractive Reading to Advance HCI Research: A Case Study on Technology for Aging. ACM Transactions on Computer-Human Interaction, 28(5), 10.1145/3462326. https://doi.org/10.1145/3462326
+Lemos, C., Coelho, H., & Lopes, R. J. (2013). Agent-based modeling of social conflict, civil violence and revolution: State-of-the-art review and further prospects. In Proceedings of the 5th International Conference on Agents and Artificial Intelligence (pp. 310–316). https://ceur-ws.org/Vol-1113/paper10.pdf
+McEver, J., Sheard, S., Cook, S., Honour, E., Hybertson, D., Krupa, J., ... & White, B. (2015). A Complexity Primer for Systems Engineers. International Council on Systems Engineering. Retrieved from https://www.incose.org/docs/default-source/ProductsPublications/a-complexity-primer-for-systems-engineers.pdf
+Mesa. (n.d.). Epstein civil violence model. In Mesa documentation. Retrieved from https://mesa.readthedocs.io/en/stable/examples/epstein_civil_violence.html
+National Library of Australia. (n.d.). South Seas: Voyaging and cross-cultural encounters in the Pacific 1760–1800. Retrieved from https://southseas.nla.gov.au/
+Nespeca, V., Comes, T., & Brazier, F. (2023). A methodology to develop agent-based models for policy support via qualitative inquiry. Journal of Artificial Societies and Social Simulation, 26(1), 10. http://jasss.soc.surrey.ac.uk/26/1/10.html. https://doi.org/10.18564/jasss.5014
+Nguyen, N., Chen, H., Jin, B., & Landsberg, A. S. (2021). Cultural dissemination: An agent-based model with social influence. Journal of Artificial Societies and Social Simulation, 24(4), Article 5. https://doi.org/10.18564/jasss.4643
+Obeyesekere, G. (1992). The Apotheosis of Captain Cook: European Mythmaking in the Pacific. Princeton University Press.
+Obeyesekere, G. (1992). The Apotheosis of Captain Cook: European Mythmaking in the Pacific. Princeton University Press.
+OECD. (2011). Annex A: Social unrest and agent-based models. In Understanding and responding to social unrest (pp. 49–64). OECD iLibrary. https://www.oecd-ilibrary.org/docserver/9789264167711-11-en.pdf
+Overlan, M. C., Jacobs, R. A., & Piantadosi, S. T. (2017). Learning abstract visual concepts via probabilistic program induction in a language of thought. Cognition, 168, 320-334.
+Rao, A. S., & Georgeff, M. P. (1995). BDI Agents: From Theory to Practice. In Proceedings of the First International Conference on Multiagent Systems (ICMAS).
+Sahlins, M. (1995, November 30). Culture war. The New York Review of Books. https://www.nybooks.com/articles/1995/11/30/culture-war/
+Sahlins, M. (1985). How 'Natives' Think: About Captain Cook, For Example. University of Chicago Press.
+Sahlins, M. (1995). How "Natives" Think: About Captain Cook, for Example. University of Chicago Press.
+San Miguel, M., Eguiluz, V. M., & Toral, R. (2003). Ultrametric distribution of culture vectors in an extended Axelrod model. Nature Scientific Reports, 3, 4870. https://www.nature.com/articles/srep04870
+Schelling, T. C. (1971). Dynamic models of segregation. Journal of Mathematical Sociology, 1(2), 143–186. https://doi.org/10.1080/0022250X.1971.9989794
+Spivak, D. I., & Kent, R. E. (2012). Ologs: A categorical framework for knowledge representation. arXiv preprint arXiv:1102.1889. https://arxiv.org/abs/1102.1889
+Springer. (n.d.). Design patterns for multi-agent systems: A systematic literature review. Retrieved from https://link.springer.com/chapter/10.1007/978-3-642-54432-3_5
+Srbljinović, A. (2018). Review of Carlos Lemos: Agent-based modeling of social conflict: From mechanisms to complex behavior. Journal of Artificial Societies and Social Simulation, 21(4), Review 2. https://www.jasss.org/21/4/reviews/2.html
+Toft, P. A. (2018). Modeling Complex Cultural Encounters in Contact and Colonial Greenland, 1690–1900: Possibilities and Limitations of the Cross-Cultural Interaction Model. In U. M. Green & K. E. Costion (Eds.), Modeling Cross-Cultural Interaction in Ancient Borderlands (pp. 64–88). University Press of Florida. https://academic.oup.com/florida-scholarship-online/book/14780/chapter/168998898
+Torren-Peraire, D., Savin, I., & van den Bergh, J. C. J. M. (2023). An agent-based model of cultural change for a low-carbon transition. Journal of Artificial Societies and Social Simulation, 27(1), Article 13. https://doi.org/10.18564/jasss.5014
+Turchin, P., Whitehouse, H., Gavrilets, S., et al. (2021). Long-term dynamics of institutions. Journal of Artificial Societies and Social Simulation, 24(4), 7. https://www.jasss.org/24/4/7.html
+Turnbull, P. (2004). Engaging with history complexity in the virtual environment: The South Seas Project. Archives and Manuscripts, 32(2), 130–145. Retrieved from https://publications.archivists.org.au/index.php/asa/article/download/9579/9573
+Watts, D. J., & Strogatz, S. H. (1998). Collective dynamics of 'small-world' networks. Nature, 393(6684), 440–442. https://doi.org/10.1038/30918
+Wells, P. S. (2018). Cross-Frontier Interactions in Roman Europe, AD 100–350: The Graphic Display of Data. In U. M. Green & K. E. Costion (Eds.), Modeling Cross-Cultural Interaction in Ancient Borderlands (pp. 14–34). University Press of Florida. https://upf.com/book.asp?id=9780813056883
+Williams, K. (2020, June). Garden entanglement as ecological-becomings: An arts-based diffractive methodology. Paper presented at the 2019 Atlantic Education Graduate Student Conference, University of New Brunswick, Fredericton, NB. Retrieved from https://www.researchgate.net/publication/341882160_Garden_Entanglement_as_Ecological-Becomings_An_Arts-Based_Diffractive_Methodology
+Wong, L.S., Grand, G., Lew, A.K., Goodman, N.D., Mansinghka, V.K., Andreas, J., & Tenenbaum, J.B. (2023). From Word Models to World Models: Translating from Natural Language to the Probabilistic Language of Thought. ArXiv, abs/2306.12672.
+Yang, C., & Gilbert, N. (2018). Structuring qualitative data for agent-based modeling. Journal of Artificial Societies and Social Simulation, 18(1), 2. https://doi.org/10.18564/jasss.18.1.2

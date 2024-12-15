@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resistance Topology Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: 'IBM Plex Mono', monospace;
+            color: #e0e0e0;
+        }
+
+        #monitor-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #333;
+            border: none;
+            color: #00ff00;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 100;
+        }
+
+        #monitor-toggle:hover {
+            background: #444;
+            color: #00ff33;
+        }
+
+        svg {
+            width: 100vw;
+            height: 100vh; /* Start with full height */
+            display: block;
+            overflow: visible;
+        }
+
+        #narrative-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 26, 0.95);
+            border-top: 2px solid #333;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 150px;
+            max-height: 80vh;
+            overflow: hidden;
+            transform: translateY(100%); /* Start hidden */
+            transition: transform 0.3s ease;
+        }
+
+        #narrative-container.visible {
+            transform: translateY(0);
+        }
+
+        #narrative-header {
+            flex: 0 0 auto;
+            padding: 8px 15px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 40px;
+            box-sizing: border-box;
+        }
+
+        #narrative-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 13px;
+            line-height: 1.4;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            margin: 0;
+            height: calc(100% - 40px);
+            box-sizing: border-box;
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            padding: 4px 6px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 3px solid transparent;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        #log-resize-handle {
+            height: 5px;
+            background: #333;
+            cursor: ns-resize;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+
+        #log-resize-handle:hover {
+            opacity: 1;
+        }
+
+        #narrative-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ff00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #narrative-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-timestamp {
+            color: #666;
+            font-size: 11px;
+            min-width: 75px;
+            padding-right: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-type {
+            min-width: 100px;
+            padding-right: 10px;
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .log-message {
+            flex-grow: 1;
+            color: #e0e0e0;
+        }
+
+        .log-metrics {
+            margin-left: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Log type styles */
+        .log-isolation {
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.15);
+        }
+
+        .log-isolation .log-type {
+            color: #ff4444;
+        }
+
+        .log-resistance {
+            border-left-color: #44ff44;
+            background: rgba(68, 255, 68, 0.15);
+        }
+
+        .log-resistance .log-type {
+            color: #44ff44;
+        }
+
+        .log-estrangement {
+            border-left-color: #cccccc;
+            background: rgba(204, 204, 204, 0.15);
+        }
+
+        .log-estrangement .log-type {
+            color: #cccccc;
+        }
+
+        .log-system {
+            border-left-color: #ffcc00;
+            background: rgba(255, 204, 0, 0.1);
+        }
+
+        .highlight-system {
+            color: #ffcc00;
+        }
+
+        #narrative-export {
+            background: #333;
+            border: none;
+            color: #00ff00;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #narrative-export:hover {
+            background: #444;
+            color: #00ff33;
+        }
+
+        .behavior-text {
+            font-size: 12px;
+            fill: #A9A9A9;
+            transition: fill 0.3s ease, opacity 0.3s ease, font-size 0.3s ease;
+            pointer-events: none;
+        }
+
+        .link {
+            stroke: #4a4a4a;
+            stroke-width: 2;
+            transition: stroke 0.3s ease, stroke-width 0.3s ease;
+        }
+
+        .node circle.inner-circle {
+            stroke: #e0e0e0;
+            stroke-width: 2;
+            transition: stroke 0.3s ease, stroke-width 0.3s ease;
+            cursor: pointer;
+        }
+
+        .node circle.outer-circle {
+            stroke: none;
+            stroke-width: 0;
+            fill: none;
+            transition: stroke 0.3s ease, stroke-width 0.3s ease;
+        }
+
+        .node text {
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        /* Styles for global behavior states */
+        .behavior-most-likely {
+            fill: #FFD700;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .behavior-least-likely {
+            fill: #A9A9A9;
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .behavior-amplifying {
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .behavior-attenuating {
+            font-style: italic;
+            color: #A9A9A9;
+        }
+
+        /* Tooltip styling */
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 6px;
+            font: 12px sans-serif;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid #fff;
+            border-radius: 4px;
+            pointer-events: none;
+            color: #fff;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .narrative-entry {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: rgba(40, 40, 40, 0.6);
+        }
+
+        .narrative-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .narrative-timestamp {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .narrative-metrics {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .narrative-content {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .narrative-highlight {
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+
+        .highlight-isolation {
+            color: #ff4444;
+        }
+
+        .highlight-resistance {
+            color: #44ff44;
+        }
+
+        .highlight-estrangement {
+            color: #cccccc;
+        }
+
+        .narrative-action {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin: 0 2px;
+        }
+
+        .narrative-action.isolation {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+        }
+
+        .narrative-action.resistance {
+            background: rgba(68, 255, 68, 0.2);
+            color: #44ff44;
+        }
+
+        .narrative-action.estrangement {
+            background: rgba(204, 204, 204, 0.2);
+            color: #cccccc;
+        }
+
+        .action {
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+            margin: 0 2px;
+        }
+
+        .action.isolation {
+            color: #8B0000;
+            background: rgba(139, 0, 0, 0.1);
+        }
+
+        .action.resistance {
+            color: #004d00;
+            background: rgba(0, 77, 0, 0.1);
+        }
+
+        .action.estrangement {
+            color: #4a4a4a;
+            background: rgba(74, 74, 74, 0.1);
+        }
+
+        #temp-update-entry {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <button id="monitor-toggle">Show Monitor</button>
+    <svg></svg>
+    <div class="tooltip"></div>
+    <div id="narrative-container">
+        <div id="log-resize-handle"></div>
+        <div id="narrative-header">
+            <div id="narrative-title">System Monitor [RT-2024]</div>
+            <div id="narrative-controls">
+                <button id="narrative-export">Export Log</button>
+            </div>
+        </div>
+        <div id="narrative-log"></div>
+    </div>
+    <script>
+        // Set up SVG dimensions
+        const svg = d3.select("svg");
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        svg.attr("width", width).attr("height", height);
+
+        // Tooltip setup
+        const tooltip = d3.select(".tooltip");
+
+        // Define main entities
+        const entities = [
+            { id: "isolation", name: "Architectural Isolation", color: "#8B0000" },    // Dark Red for nodes
+            { id: "resistance", name: "Persistent Resistance", color: "#004d00" },     // Dark Green for nodes
+            { id: "estrangement", name: "Estrangement Mechanism", color: "#4a4a4a" }  // Dark Gray for nodes
+        ];
+
+        const colorMap = {
+            isolation: "#8B0000",     // Dark Red for nodes
+            resistance: "#004d00",    // Dark Green for nodes
+            estrangement: "#4a4a4a",  // Dark Gray for nodes
+            // Bright colors for console
+            consoleIsolation: "#ff4444",
+            consoleResistance: "#44ff44",
+            consoleEstrangement: "#cccccc"
+        };
+
+        // Define behaviors with a flat structure and distinct weights
+        const behaviors = [
+            // Architectural Isolation Behaviors
+            {
+                id: "exclusion",
+                name: "Exclusion",
+                parent: "isolation",
+                influencedBy: ["resistance", "estrangement"],
+                weights: { resistance: 1.2, estrangement: 0.8 },
+                score: 0,
+                state: "neutral"
+            },
+            {
+                id: "marginalization",
+                name: "Marginalization",
+                parent: "isolation",
+                influencedBy: ["resistance", "estrangement"],
+                weights: { resistance: 1.0, estrangement: 1.0 },
+                score: 0,
+                state: "neutral"
+            },
+            {
+                id: "spatial-violence",
+                name: "Spatial Violence",
+                parent: "isolation",
+                influencedBy: ["resistance", "estrangement"],
+                weights: { resistance: 0.7, estrangement: 1.3 },
+                score: 0,
+                state: "neutral"
+            },
+            // Persistent Resistance Behaviors
+            {
+                id: "reclamation",
+                name: "Reclamation",
+                parent: "resistance",
+                influencedBy: ["isolation", "estrangement"],
+                weights: { isolation: 1.1, estrangement: 0.9 },
+                score: 0,
+                state: "neutral"
+            },
+            {
+                id: "disruption",
+                name: "Disruption",
+                parent: "resistance",
+                influencedBy: ["isolation", "estrangement"],
+                weights: { isolation: 0.8, estrangement: 1.2 },
+                score: 0,
+                state: "neutral"
+            },
+            {
+                id: "counter-design",
+                name: "Counter-design",
+                parent: "resistance",
+                influencedBy: ["isolation", "estrangement"],
+                weights: { isolation: 1.0, estrangement: 1.0 },
+                score: 0,
+                state: "neutral"
+            },
+            // Estrangement Mechanism Behaviors
+            {
+                id: "psychological-distancing",
+                name: "Psychological Distancing",
+                parent: "estrangement",
+                influencedBy: ["isolation", "resistance"],
+                weights: { isolation: 0.8, resistance: 1.2 },
+                score: 0,
+                state: "neutral"
+            },
+            {
+                id: "normative-control",
+                name: "Normative Control",
+                parent: "estrangement",
+                influencedBy: ["isolation", "resistance"],
+                weights: { isolation: 1.0, resistance: 1.0 },
+                score: 0,
+                state: "neutral"
+            },
+            {
+                id: "subtle-oppression",
+                name: "Subtle Oppression",
+                parent: "estrangement",
+                influencedBy: ["isolation", "resistance"],
+                weights: { isolation: 1.3, resistance: 0.7 },
+                score: 0,
+                state: "neutral"
+            }
+        ];
+
+        // Define links between main entities
+        const links = [
+            { source: "isolation", target: "resistance" },
+            { source: "resistance", target: "estrangement" },
+            { source: "estrangement", target: "isolation" }
+        ];
+
+        // Initialize positions in a circular layout
+        const radius = 200;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        entities.forEach((d, i) => {
+            const angle = (i / entities.length) * 2 * Math.PI;
+            d.x = centerX + radius * Math.cos(angle);
+            d.y = centerY + radius * Math.sin(angle);
+        });
+
+        // Draw shape path first to ensure it's beneath other elements
+        updateShape();
+
+        // Draw links between nodes
+        const linkElements = svg.selectAll(".link")
+                                .data(links)
+                                .enter()
+                                .append("line")
+                                .attr("class", "link")
+                                .attr("x1", d => getEntityById(d.source).x)
+                                .attr("y1", d => getEntityById(d.source).y)
+                                .attr("x2", d => getEntityById(d.target).x)
+                                .attr("y2", d => getEntityById(d.target).y);
+
+        // Create node groups
+        const node = svg.selectAll(".node")
+                        .data(entities)
+                        .enter()
+                        .append("g")
+                        .attr("class", "node")
+                        .attr("transform", d => `translate(${d.x},${d.y})`)
+                        .call(d3.drag().on("start", dragStarted).on("drag", dragging).on("end", dragEnded))
+                        .on("mouseover", showTooltip)
+                        .on("mouseout", hideTooltip);
+
+        // Draw outer circles (initially hidden)
+        node.append("circle")
+            .attr("class", "outer-circle")
+            .attr("r", 50) // Slightly larger than inner circle
+            .attr("fill", "none")
+            .attr("stroke-width", 4)
+            .attr("stroke", "none"); // Will be updated based on highest sum
+
+        // Draw inner circles
+        node.append("circle")
+            .attr("class", "inner-circle")
+            .attr("r", 40)
+            .attr("fill", d => colorMap[d.id]);
+
+        // Add entity names
+        node.append("text")
+            .text(d => d.name)
+            .attr("text-anchor", "middle")
+            .attr("dy", 5)
+            .attr("fill", "#fff");
+
+        // Add behavior texts
+        const behaviorGroups = svg.selectAll(".behavior-group")
+                                  .data(behaviors)
+                                  .enter()
+                                  .append("g")
+                                  .attr("class", "behavior-group")
+                                  .attr("transform", d => {
+                                      const parent = getEntityById(d.parent);
+                                      // Position behaviors below their parent node
+                                      const offsetY = 60; // Distance below the node
+                                      const behaviorsOfParent = behaviors.filter(b => b.parent === d.parent);
+                                      const index = behaviorsOfParent.indexOf(d);
+                                      return `translate(${parent.x}, ${parent.y + offsetY + index * 18})`;
+                                  });
+
+        const behaviorTexts = behaviorGroups.append("text")
+                                             .attr("class", "behavior-text")
+                                             .text(d => d.name)
+                                             .attr("text-anchor", "middle")
+                                             .attr("dy", "0.35em"); // Vertical alignment
+
+        // Tooltip functions
+        function showTooltip(event, d) {
+            // d here is the entity
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", 0.9);
+            tooltip.html(`<strong>${d.name}</strong>`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        }
+
+        function hideTooltip() {
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        }
+
+        // Function to update the visualization on drag
+        function updateVisualization() {
+            // Update link positions
+            linkElements.attr("x1", d => getEntityById(d.source).x)
+                        .attr("y1", d => getEntityById(d.source).y)
+                        .attr("x2", d => getEntityById(d.target).x)
+                        .attr("y2", d => getEntityById(d.target).y);
+
+            // Update node positions
+            node.attr("transform", d => `translate(${d.x},${d.y})`);
+
+            // Update behavior positions
+            behaviors.forEach((b, i) => {
+                const parent = getEntityById(b.parent);
+                const behaviorGroup = svg.selectAll(".behavior-group")
+                                         .filter(d => d.id === b.id);
+                const offsetY = 60; // Distance below the node
+                const behaviorsOfParent = behaviors.filter(bh => bh.parent === b.parent);
+                const index = behaviorsOfParent.indexOf(b);
+                behaviorGroup.attr("transform", `translate(${parent.x}, ${parent.y + offsetY + index * 18})`);
+            });
+
+            // Update behavior scores and styles
+            updateBehaviorScores();
+
+            // Update outer circles based on highest sum
+            updateOuterCircles();
+
+            // Update shape path based on highest sum
+            updateShape();
+        }
+
+        // Helper function to get entity by ID
+        function getEntityById(id) {
+            return entities.find(e => e.id === id);
+        }
+
+        // Function to calculate Euclidean distance between two entities
+        function calculateDistance(entityA, entityB) {
+            return Math.hypot(entityA.x - entityB.x, entityA.y - entityB.y);
+        }
+
+        // Function to calculate Action Vector Score (AVS) for a behavior
+        function calculateAVS(behavior) {
+            let AVS = 0;
+            const epsilon = 1e-5; // Prevent division by zero
+            const k = 100; // Normalization constant (adjust as needed)
+
+            behavior.influencedBy.forEach(influencerId => {
+                const influencer = getEntityById(influencerId);
+                const parent = getEntityById(behavior.parent);
+                const distance = calculateDistance(parent, influencer);
+                const influence = behavior.weights[influencerId] * (1 / (distance + epsilon)) * k;
+                AVS += influence;
+            });
+
+            return AVS;
+        }
+
+        // Function to determine the state based on AVS
+        function determineState(AVS, maxAVS) {
+            // Dynamic normalization based on current max AVS
+            const normalizedAVS = AVS / maxAVS;
+
+            if (normalizedAVS >= 0.7) {
+                return "amplified"; // Most Likely
+            } else if (normalizedAVS <= 0.3) {
+                return "attenuated"; // Least Likely
+            } else {
+                return "neutral"; // Intermediate
+            }
+        }
+
+        // Function to update behavior scores and styles
+        function updateBehaviorScores() {
+            // Calculate AVS for each behavior
+            behaviors.forEach(b => {
+                const AVS = calculateAVS(b);
+                b.score = AVS;
+            });
+
+            // Determine global max and min AVS
+            const maxAVS = d3.max(behaviors, d => d.score) || 1;
+            const minAVS = d3.min(behaviors, d => d.score) || 0;
+
+            // Assign states based on AVS
+            behaviors.forEach(b => {
+                b.state = determineState(b.score, maxAVS);
+            });
+
+            // Identify the most and least likely behaviors globally
+            const mostLikelyBehavior = behaviors.reduce((a, b) => a.score > b.score ? a : b, behaviors[0]);
+            const leastLikelyBehavior = behaviors.reduce((a, b) => a.score < b.score ? a : b, behaviors[0]);
+
+            // Reset all behavior styles
+            behaviorTexts
+                .classed("behavior-most-likely", false)
+                .classed("behavior-least-likely", false)
+                .classed("behavior-amplifying", false)
+                .classed("behavior-attenuating", false)
+                .classed("behavior-neutral", false)
+                .style("fill", d => {
+                    const behavior = behaviors.find(b => b.id === d.id);
+                    return d.state === "neutral" ? "#9370DB" : d.state === "attenuated" ? "#8A2BE2" : "#FFD700";
+                })
+                .style("font-size", "12px");
+
+            // Style the most likely behavior
+            behaviorTexts.filter(d => d.id === mostLikelyBehavior.id)
+                         .classed("behavior-most-likely", true)
+                         .style("fill", "#FFD700") // Bright Gold
+                         .style("font-size", "14px");
+
+            // Style the least likely behavior
+            behaviorTexts.filter(d => d.id === leastLikelyBehavior.id)
+                         .classed("behavior-least-likely", true)
+                         .style("fill", "#A9A9A9") // Light Grey
+                         .style("font-size", "10px");
+        }
+
+        // Function to update outer circles based on highest sum
+        function updateOuterCircles() {
+            // Calculate sum AVS for each entity
+            const sumAVSByEntity = {};
+            behaviors.forEach(b => {
+                if (!sumAVSByEntity[b.parent]) {
+                    sumAVSByEntity[b.parent] = 0;
+                }
+                sumAVSByEntity[b.parent] += b.score;
+            });
+
+            // Determine which entity has the highest sum AVS
+            let highestSumEntity = null;
+            let highestSum = -Infinity;
+            for (const [entityId, sumAVS] of Object.entries(sumAVSByEntity)) {
+                if (sumAVS > highestSum) {
+                    highestSum = sumAVS;
+                    highestSumEntity = entityId;
+                }
+            }
+
+            // Style the outer circles
+            node.selectAll("circle.outer-circle")
+                .attr("stroke", d => d.id === highestSumEntity ? colorMap[d.id] : "none")
+                .attr("stroke-width", d => d.id === highestSumEntity ? 4 : 0)
+                .attr("fill", "none"); // Ensure no fill
+        }
+
+        // Function to update shape path based on highest sum
+        function updateShape() {
+            // Calculate sum AVS for each entity
+            const sumAVSByEntity = {};
+            behaviors.forEach(b => {
+                if (!sumAVSByEntity[b.parent]) {
+                    sumAVSByEntity[b.parent] = 0;
+                }
+                sumAVSByEntity[b.parent] += b.score;
+            });
+
+            // Determine which entity has the highest sum AVS
+            let highestSumEntity = null;
+            let highestSum = -Infinity;
+            for (const [entityId, sumAVS] of Object.entries(sumAVSByEntity)) {
+                if (sumAVS > highestSum) {
+                    highestSum = sumAVS;
+                    highestSumEntity = entityId;
+                }
+            }
+
+            // Define color based on the highest sum entity
+            let shapeColor = "grey"; // Default
+            if (highestSumEntity === "isolation") {
+                shapeColor = "#ff4444"; // Brighter red
+            } else if (highestSumEntity === "resistance") {
+                shapeColor = "#44ff44"; // Brighter green
+            } else if (highestSumEntity === "estrangement") {
+                shapeColor = "#cccccc"; // Brighter gray
+            }
+
+            // Remove existing shape path if any
+            svg.selectAll(".shape-layer").remove();
+
+            // Define shape data (e.g., convex hull)
+            const points = entities.map(c => [c.x, c.y]);
+            const hull = d3.polygonHull(points);
+
+            if (hull) {
+                // Insert shape layer as the first child of SVG to ensure it's behind other elements
+                const shapeLayer = svg.insert("g", ":first-child")
+                    .attr("class", "shape-layer");
+
+                shapeLayer.append("path")
+                    .attr("d", d3.line().curve(d3.curveCardinalClosed)(hull))
+                    .attr("fill", "none")
+                    .attr("stroke", shapeColor)
+                    .attr("stroke-width", 3)
+                    .attr("opacity", 0.7);
+            }
+        }
+
+        let isDragging = false;
+        let draggedNode = null;
+        let lastNodePositions = {};
+        let narrativeHistory = [];
+        const MAX_HISTORY = 50;
+        let simulationDay = 1;  // Add global day counter
+
+        function dragStarted(event, d) {
+            isDragging = true;
+            draggedNode = d;
+            // Add temporary "updating" entry
+            const log = document.getElementById('narrative-log');
+            const tempEntry = document.createElement('div');
+            tempEntry.id = 'temp-update-entry';
+            tempEntry.className = 'narrative-entry log-system';
+            tempEntry.innerHTML = `
+                <div class="narrative-header">
+                    <span class="narrative-timestamp">${new Date().toLocaleTimeString()}</span>
+                </div>
+                <div class="narrative-content">
+                    <span class='narrative-highlight highlight-system'>SYSTEM UPDATE:</span> 
+                    Topology shift in progress...
+                </div>
+            `;
+            log.insertBefore(tempEntry, log.firstChild);
+        }
+
+        function dragging(event, d) {
+            d.x = event.x;
+            d.y = event.y;
+            updateVisualization();
+        }
+
+        function dragEnded(event, d) {
+            isDragging = false;
+            // Remove temporary update entry
+            const tempEntry = document.getElementById('temp-update-entry');
+            if (tempEntry) tempEntry.remove();
+            // Generate new narrative entry
+            updateNarrative(true);
+        }
+
+        function hasPositionsChanged() {
+            if (!draggedNode) return false;
+            const last = lastNodePositions[draggedNode.id];
+            const threshold = 5;
+            if (Math.abs(last.x - draggedNode.x) > threshold || Math.abs(last.y - draggedNode.y) > threshold) {
+                lastNodePositions[draggedNode.id] = {
+                    x: draggedNode.x,
+                    y: draggedNode.y
+                };
+                draggedNode = null;
+                return true;
+            }
+            return false;
+        }
+
+        function updateNarrative(forceUpdate = false) {
+            if (!forceUpdate && (!hasPositionsChanged() || isDragging)) return;
+            
+            const newNarrative = generateNarrative();
+            narrativeHistory.unshift(newNarrative);
+            
+            if (narrativeHistory.length > MAX_HISTORY) {
+                narrativeHistory = narrativeHistory.slice(0, MAX_HISTORY);
+            }
+            
+            const log = document.getElementById('narrative-log');
+            log.innerHTML = narrativeHistory.map(renderNarrativeEntry).join('');
+        }
+
+        function generateNarrative() {
+            const mostLikelyBehavior = behaviors.reduce((a, b) => a.score > b.score ? a : b);
+            const leastLikelyBehavior = behaviors.reduce((a, b) => a.score < b.score ? a : b);
+            
+            let narrative = {
+                day: simulationDay,
+                timestamp: new Date(),
+                content: "",
+                type: mostLikelyBehavior.parent,
+                intensity: mostLikelyBehavior.score.toFixed(2),
+                secondaryType: leastLikelyBehavior.parent,
+                secondaryIntensity: leastLikelyBehavior.score.toFixed(2),
+                action: mostLikelyBehavior.id,
+                secondaryAction: leastLikelyBehavior.id
+            };
+
+            if (mostLikelyBehavior.parent === "isolation") {
+                narrative.content += `<span class='narrative-highlight highlight-${mostLikelyBehavior.parent}'>Urban Control Intensifies</span> <span class='action ${mostLikelyBehavior.parent}'>[${mostLikelyBehavior.id}]</span>: `;
+                narrative.content += "In a controversial move, the city has intensified its hostile architecture campaign. ";
+                if (mostLikelyBehavior.id === "exclusion") {
+                    narrative.content += "New benches with metal spikes have been installed across downtown, effectively preventing people from lying down or sleeping on them. ";
+                } else if (mostLikelyBehavior.id === "marginalization") {
+                    narrative.content += "Public spaces are being redesigned with uncomfortable seating and limited shelter, pushing vulnerable populations to the periphery. ";
+                } else if (mostLikelyBehavior.id === "spatial-violence") {
+                    narrative.content += "Aggressive design elements like jagged edges and sprinkler systems are being incorporated into public architecture, creating an unwelcoming environment. ";
+                }
+            } else if (mostLikelyBehavior.parent === "resistance") {
+                narrative.content += `<span class='narrative-highlight highlight-${mostLikelyBehavior.parent}'>Community Response</span> <span class='action ${mostLikelyBehavior.parent}'>[${mostLikelyBehavior.id}]</span>: `;
+                narrative.content += "Community activists have mobilized in response to the city's hostile design measures. ";
+                if (mostLikelyBehavior.id === "reclamation") {
+                    narrative.content += "Local groups are organizing 'sleep-ins' at affected areas, reclaiming public spaces for communal use. ";
+                } else if (mostLikelyBehavior.id === "disruption") {
+                    narrative.content += "Groups have been seen covering spiked benches with plywood, creating temporary safe spaces for rest. ";
+                } else if (mostLikelyBehavior.id === "counter-design") {
+                    narrative.content += "A coalition of architects and activists has proposed alternative, inclusive designs for public spaces that accommodate all community members. ";
+                }
+            } else if (mostLikelyBehavior.parent === "estrangement") {
+                narrative.content += `<span class='narrative-highlight highlight-${mostLikelyBehavior.parent}'>Social Impact Alert</span> <span class='action ${mostLikelyBehavior.parent}'>[${mostLikelyBehavior.id}]</span>: `;
+                narrative.content += "The social fabric of the city is showing signs of strain due to the hostile architecture. ";
+                if (mostLikelyBehavior.id === "psychological-distancing") {
+                    narrative.content += "Residents report feeling unwelcome in public spaces, leading to a noticeable decrease in community gatherings. ";
+                } else if (mostLikelyBehavior.id === "normative-control") {
+                    narrative.content += "There's a growing acceptance of restricted public space use, with some citizens advocating for even stricter measures. ";
+                } else if (mostLikelyBehavior.id === "subtle-oppression") {
+                    narrative.content += "Marginalized groups are experiencing increased difficulty in accessing public services and spaces, exacerbating existing inequalities. ";
+                }
+            }
+
+            narrative.content += `<span class='narrative-highlight highlight-${leastLikelyBehavior.parent}'>Meanwhile</span> <span class='action ${leastLikelyBehavior.parent}'>[${leastLikelyBehavior.id}]</span>: `;
+            if (leastLikelyBehavior.parent === "isolation") {
+                if (leastLikelyBehavior.id === "exclusion") {
+                    narrative.content += "Plans for installing anti-homeless spikes in additional areas have been temporarily shelved. ";
+                } else if (leastLikelyBehavior.id === "marginalization") {
+                    narrative.content += "Efforts to remove public benches entirely have been met with significant resistance and put on hold. ";
+                } else if (leastLikelyBehavior.id === "spatial-violence") {
+                    narrative.content += "Proposals for more overt hostile architecture elements have been rejected by city planners. ";
+                }
+            } else if (leastLikelyBehavior.parent === "resistance") {
+                if (leastLikelyBehavior.id === "reclamation") {
+                    narrative.content += "Attempts to establish permanent community-run spaces in affected areas have not gained traction. ";
+                } else if (leastLikelyBehavior.id === "disruption") {
+                    narrative.content += "Plans for large-scale protests against the hostile design have been delayed. ";
+                } else if (leastLikelyBehavior.id === "counter-design") {
+                    narrative.content += "Efforts to implement community-driven design alternatives have faced bureaucratic hurdles. ";
+                }
+            } else if (leastLikelyBehavior.parent === "estrangement") {
+                if (leastLikelyBehavior.id === "psychological-distancing") {
+                    narrative.content += "The anticipated widespread alienation from public spaces has not fully materialized. ";
+                } else if (leastLikelyBehavior.id === "normative-control") {
+                    narrative.content += "Attempts to normalize restrictive public space policies have met with unexpected public pushback. ";
+                } else if (leastLikelyBehavior.id === "subtle-oppression") {
+                    narrative.content += "The expected shift in public perception of shared spaces has not yet materialized as strongly as anticipated. ";
+                }
+            }
+
+            simulationDay++;
+            return narrative;
+        }
+
+        function renderNarrativeEntry(entry) {
+            return `
+                <div class="narrative-entry log-${entry.type}">
+                    <div class="narrative-header">
+                        <span class="narrative-timestamp">Day ${entry.day}</span>
+                        <span class="narrative-metrics">
+                            <span class="highlight-${entry.type}">
+                                ${entry.type} [${entry.action}] (${entry.intensity})
+                            </span> → 
+                            <span class="highlight-${entry.secondaryType}">
+                                ${entry.secondaryType} [${entry.secondaryAction}] (${entry.secondaryIntensity})
+                            </span>
+                        </span>
+                    </div>
+                    <div class="narrative-content">${entry.content}</div>
+                </div>
+            `;
+        }
+
+        // Add export functionality with data structure
+        document.getElementById('narrative-export').addEventListener('click', () => {
+            const exportData = {
+                simulation_id: "RT-" + new Date().getTime(),
+                total_days: narrativeHistory.length,
+                entries: narrativeHistory.map((entry, index) => ({
+                    day: index + 1,
+                    timestamp: entry.timestamp,
+                    dominant: {
+                        type: entry.type,
+                        intensity: parseFloat(entry.intensity)
+                    },
+                    secondary: {
+                        type: entry.secondaryType,
+                        intensity: parseFloat(entry.secondaryIntensity)
+                    },
+                    narrative: entry.content.replace(/<[^>]*>/g, '')
+                }))
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resistance-topology-${exportData.simulation_id}.json`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+
+        // Add resize functionality
+        const container = document.getElementById('narrative-container');
+        const handle = document.getElementById('log-resize-handle');
+        
+        handle.addEventListener('mousedown', initResize, false);
+
+        function initResize(e) {
+            window.addEventListener('mousemove', resize, false);
+            window.addEventListener('mouseup', stopResize, false);
+        }
+
+        function resize(e) {
+            const newHeight = window.innerHeight - e.clientY;
+            container.style.height = newHeight + 'px';
+        }
+
+        function stopResize(e) {
+            window.removeEventListener('mousemove', resize, false);
+            window.removeEventListener('mouseup', stopResize, false);
+        }
+
+        // Monitor visibility control
+        const monitorToggle = document.getElementById('monitor-toggle');
+        const narrativeContainer = document.getElementById('narrative-container');
+        let isMonitorVisible = false;
+
+        function toggleMonitor() {
+            isMonitorVisible = !isMonitorVisible;
+            narrativeContainer.classList.toggle('visible', isMonitorVisible);
+            monitorToggle.textContent = isMonitorVisible ? 'Hide Monitor' : 'Show Monitor';
+            
+            // Adjust SVG height
+            svg.style.height = isMonitorVisible ? 'calc(100vh - 300px)' : '100vh';
+            
+            // Force update visualization
+            updateVisualization();
+        }
+        
+        monitorToggle.addEventListener('click', toggleMonitor);
+
+        // Improved resize handling
+        function resize(e) {
+            if (!isMonitorVisible) return; // Don't resize if monitor is hidden
+            
+            const minVisualizationHeight = 150;
+            const maxMonitorHeight = window.innerHeight * 0.8;
+            
+            let newHeight = window.innerHeight - e.clientY;
+            
+            // Enforce bounds
+            newHeight = Math.max(150, Math.min(newHeight, maxMonitorHeight));
+            
+            // Ensure minimum visualization space
+            if (window.innerHeight - newHeight < minVisualizationHeight) {
+                newHeight = window.innerHeight - minVisualizationHeight;
+            }
+            
+            container.style.height = `${newHeight}px`;
+            svg.style.height = `calc(100vh - ${newHeight}px)`;
+            
+            updateVisualization();
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            
+            // Always ensure full graph visibility
+            if (isMonitorVisible) {
+                const currentHeight = parseInt(container.style.height || '300');
+                svg.style.height = `calc(100vh - ${currentHeight}px)`;
+            } else {
+                svg.style.height = '100vh';
+            }
+            
+            svg.attr('width', width);
+            updateVisualization();
+        });
+
+        // Initialize positions when the visualization starts
+        entities.forEach(entity => {
+            lastNodePositions[entity.id] = {
+                x: entity.x,
+                y: entity.y
+            };
+        });
+
+        // Initial visualization update
+        updateVisualization();
+    </script>
+</body>
+</html>

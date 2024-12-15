@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Paths</title>
+    <link href="Users/gaia/resistance-topology/styles.css" rel="stylesheet">
+    <script src="script.js"></script>
+</head>
+<body>
+    <h1>Test Paths</h1>
+    
+    <!-- Absolute paths -->
+    <img src="images/test.png" alt="Test">
+    <a href="Users/gaia/resistance-topology/index.html">Home</a>
+    
+    <!-- Windows-style paths -->
+    <img src="test.png" alt="Test">
+    
+    <!-- Relative paths (these should stay unchanged) -->
+    <img src="./images/test.png" alt="Test">
+    <a href="../other/page.html">Other Page</a>
+    
+    <!-- Data attributes -->
+    <div data-src="Users/gaia/resistance-topology/data/test.json"></div>
+    
+    <!-- Mixed path separators -->
+    <img src="images/test/photo.jpg" alt="Test">
+</body>
+</html>

@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cultural Systems Model - Cook's Death Scenario</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff; 
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #cultural-model {
+            background-color: #fafafa;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        #interaction-field {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+            position: relative;
+            background: #fff;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 14px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type=range] {
+            width: 100%;
+        }
+
+        #description {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        #archetype-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 40px auto;
+        }
+
+        .archetype-card {
+            background: #fefefe;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            width: 250px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1 1 250px;
+            cursor: pointer;
+        }
+
+        .archetype-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .archetype-params {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .archetype-desc {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 12px;
+            pointer-events: none;
+            max-width: 300px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .tooltip ul {
+            margin: 4px 0;
+            padding-left: 20px;
+        }
+
+        .tooltip li {
+            margin: 2px 0;
+        }
+
+        .tooltip hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 8px 0;
+        }
+
+        .quiz-button {
+            display: block;
+            width: 200px;
+            margin: 40px auto;
+            padding: 15px 30px;
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .quiz-button:hover {
+            background-color: #45a049;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="cultural-model">
+        <h2>Probabilistic Cultural Systems Model</h2>
+        <p id="description">
+            Adjust the sliders to shape the cultural landscape.<br>
+            <strong>Practical ↔ Symbolic:</strong> transitions node shape and color. Near Symbolic: more rounded, red/pink tones; Near Practical: more square, blue/teal tones; Middle: neutral grays/purples with variation.<br>
+            <strong>Individual ↔ Collective:</strong> influences link density and clustering. Individual = fewer links, possibly isolated nodes; Collective = denser, stronger links.<br>
+            <strong>Entropic ↔ Negentropic:</strong> Entropic = random layouts; Negentropic = grid-like, orderly arrangements.
+        </p>
+
+        <div id="interaction-field"></div>
+
+        <div class="control-panel">
+            <div class="slider-container">
+                <label>Practical ↔ Symbolic</label>
+                <input type="range" min="0" max="100" value="50" id="practical-symbolic">
+            </div>
+            <div class="slider-container">
+                <label>Individual ↔ Collective</label>
+                <input type="range" min="0" max="100" value="50" id="individual-collective">
+            </div>
+            <div class="slider-container">
+                <label>Entropic ↔ Negentropic</label>
+                <input type="range" min="0" max="100" value="50" id="entropic-negentropic">
+            </div>
+        </div>
+    </div>
+
+    <div id="archetype-cards"></div>
+
+    <a href="prim.html" class="quiz-button">Take the Quiz</a>
+
+    <script>
+        let scenarioMode = false; 
+        let currentScenario = null;
+
+        const roles = [
+            "Captain Cook",
+            "King Kalaniʻōpuʻu",
+            "Lono Priest (Kaʻōʻō)",
+            "High-Ranking Chief (Palea)",
+            "Hawaiian Warrior",
+            "British Officer",
+            "British Crew Member"
+        ];
+
+const scenarios = [
+    {
+        "title": "Symbolic - Individual - Entropic",
+        "params": "P<50, I<50, E<50",
+        "desc": "Chaotic scattering of symbolic interpretations. No collective narrative; each agent reinterprets Cook’s attempt to seize the King individually.",
+        "p": 25, "i": 25, "e": 25,
+        "bdi": {
+          "Captain Cook": {
+            "beliefs": ["Unsure why Hawaiians no longer comply, thinks personal force might restore lost divine aura."],
+            "desires": ["Reassert control swiftly, individually imposing his will."],
+            "intentions": ["Grab the King personally, ignoring communal signals."],
+            "what": ["Physically reaching out to seize Kalaniʻōpuʻu alone"],
+            "why": ["Believes a personal show of dominance can re-establish his divine-like influence amid confusion."],
+            "when": ["Immediately—before the scattered crowd regains any collective stance."]
+          },
+          "King Kalaniʻōpuʻu": {
+            "beliefs": ["Sees Cook’s action as personal betrayal, no shared logic left."],
+            "desires": ["Maintain authority individually, not counting on group support."],
+            "intentions": ["Retreat personally if hostility escalates."],
+            "what": ["Stepping back, assessing Cook’s hostile move on his own terms"],
+            "why": ["Personal survival and dignity, without relying on communal action."],
+            "when": ["Within moments—he must decide now, before Cook’s grip tightens."]
+          },
+          "Lono Priest (Kaʻōʻō)": {
+            "beliefs": ["Struggles to make personal sense of Cook’s shattered divinity."],
+            "desires": ["Find a personal omen or sign, lacking stable ritual structure."],
+            "intentions": ["Whisper private chants, uncertain how to reinterpret Cook’s status alone."],
+            "what": ["Muttering fragmented prayers, looking for a personal sign"],
+            "why": ["Needs private clarity in a symbolic void, no communal guidance."],
+            "when": ["In these critical seconds, before events unfold irreversibly."]
+          },
+          "High-Ranking Chief (Palea)": {
+            "beliefs": ["Views Cook’s aggression as a private affront—no collective consensus to rely on."],
+            "desires": ["Seize advantage personally, maybe grab European goods in the chaos."],
+            "intentions": ["Act opportunistically: step aside or exploit confusion to gain valuables."],
+            "what": ["Hanging back or darting in to snatch a resource at the right moment"],
+            "why": ["Personal gain is achievable amid symbolic and social disarray."],
+            "when": ["Right now, as confusion peaks, before order re-emerges."]
+          },
+          "Hawaiian Warrior": {
+            "beliefs": ["Personally enraged by Cook’s insult to the King."],
+            "desires": ["Defend royal honor solo, no collective directive needed."],
+            "intentions": ["Might strike Cook individually, turning private anger into violence."],
+            "what": ["Raising a weapon, ready to lash out at Cook"],
+            "why": ["To restore personal honor and avenge the King’s dignity at once."],
+            "when": ["In an instant—if Cook tries to seize the King, the warrior acts now."]
+          },
+          "British Officer": {
+            "beliefs": ["Sees random hostility, no shared reasoning—just personal threats."],
+            "desires": ["Ensure personal and Cook’s safety without a structured plan."],
+            "intentions": ["Draw a pistol individually, hoping lone action deters attackers."],
+            "what": ["Reaching for firearm to scare off isolated threats"],
+            "why": ["Believes solitary acts might hold off individually enraged Hawaiians."],
+            "when": ["Immediately, as each moment without action invites a personal attack."]
+          },
+          "British Crew Member": {
+            "beliefs": ["Confused, sees no pattern in native reactions."],
+            "desires": ["Ensure personal survival in chaos."],
+            "intentions": ["Hesitate, hide behind gear, unsure who to follow."],
+            "what": ["Crouching behind a crate or shield, weapon in hand"],
+            "why": ["Personal safety is paramount amid incomprehensible hostility."],
+            "when": ["Right now—any delay could mean personal harm."]
+          }
+        }
+    },
+    {
+        "title": "Symbolic - Individual - Negentropic",
+        "params": "P<50, I<50, E≥50",
+        "desc": "Each agent has a neat personal symbolic interpretation but no collective alignment. Everyone acts in an orderly but solitary manner.",
+        "p": 25, "i": 25, "e": 75,
+        "bdi": {
+          "Captain Cook": {
+            "beliefs": ["Thinks methodical ritual-like action (hostage-taking) restores respect."],
+            "desires": ["Reassert stable narrative: he’s ‘Lono’ misunderstood."],
+            "intentions": ["Take the King quietly, expecting orderly individual compliance."],
+            "what": ["Carefully extending hand to seize King, expecting neat submission"],
+            "why": ["Hopes a structured personal approach will restore his divine standing."],
+            "when": ["Immediately, within a structured personal timeframe, before confusion sets in."]
+          },
+          "King Kalaniʻōpuʻu": {
+            "beliefs": ["Has a personal, well-structured view: Cook’s divine favor ended."],
+            "desires": ["Maintain dignity alone, no communal backup needed."],
+            "intentions": ["Stand poised, personally resisting Cook’s attempt calmly."],
+            "what": ["Holding ground or stepping back at a measured pace"],
+            "why": ["Preserve personal honor and authority through orderly personal action."],
+            "when": ["In these tense moments—must respond now to Cook’s approach."]
+          },
+          "Lono Priest (Kaʻōʻō)": {
+            "beliefs": ["Individually sees Cook’s fall from grace as systematic."],
+            "desires": ["Keep personal ritual logic intact, ignoring collective support."],
+            "intentions": ["Perform small, private rites, noting Cook’s shift personally."],
+            "what": ["Quietly reciting a private chant, documenting Cook’s downfall alone"],
+            "why": ["Maintain a coherent personal ritual narrative in a stable internal framework."],
+            "when": ["At this critical juncture, as Cook moves, record it mentally now."]
+          },
+          "High-Ranking Chief (Palea)": {
+            "beliefs": ["Interprets Cook’s aggression as a final sign that personal deals won’t hold."],
+            "desires": ["Maintain personal economic advantage without group help."],
+            "intentions": ["Calmly step aside or quietly angle for personal benefit."],
+            "what": ["Discreetly positioning himself to avoid conflict or pick up valuable items"],
+            "why": ["Personal gain and safety through an orderly, self-contained strategy."],
+            "when": ["Right now—before the situation escalates beyond personal control."]
+          },
+          "Hawaiian Warrior": {
+            "beliefs": ["Personal code sees Cook’s action as a neat insult to royal order."],
+            "desires": ["Defend King’s honor individually, in a controlled personal manner."],
+            "intentions": ["Wait for the perfect personal moment to strike."],
+            "what": ["Steadily gripping a weapon, eyeing Cook for a precise personal counterattack"],
+            "why": ["Honor-driven, believing a tidy personal response can uphold royal dignity."],
+            "when": ["Within seconds, as soon as Cook attempts the hostage action."]
+          },
+          "British Officer": {
+            "beliefs": ["Assumes neat chain-of-command logic: just a patterned misunderstanding."],
+            "desires": ["Restore order through disciplined personal action."],
+            "intentions": ["Adopt a personal defensive stance, maybe call a few crew to order."],
+            "what": ["Standing firm, loading a pistol with measured calm"],
+            "why": ["A rational, personal approach might calm tensions."],
+            "when": ["Immediately—each second of delay reduces personal control."]
+          },
+          "British Crew Member": {
+            "beliefs": ["Believes natives upset in a stable, understandable way."],
+            "desires": ["Survive with personal caution, keep gear safe."],
+            "intentions": ["Maintain personal vigilance at a fixed spot, watch carefully."],
+            "what": ["Remaining at a chosen position, gripping a tool weapon"],
+            "why": ["Personal survival through orderly caution and individual stability."],
+            "when": ["At once—no time to wait, must be cautious now."]
+          }
+        }
+    },
+    {
+        "title": "Symbolic - Collective - Entropic",
+        "params": "P<50, I≥50, E<50",
+        "desc": "A lively but chaotic communal reinterpretation. Everyone draws on collective energy but unpredictably.",
+        "p": 25, "i": 75, "e": 25,
+        "bdi": {
+          "Captain Cook": {
+            "beliefs": ["Senses chaotic collective confusion, thinks a bold act might reassert his ‘Lono’ image collectively."],
+            "desires": ["Force collective recognition of his power via dramatic hostage-taking."],
+            "intentions": ["Seize the King, hoping crowd returns to reverence amid chaos."],
+            "what": ["Lunging for the King publicly, relying on chaotic awe"],
+            "why": ["Believes a shocking communal display can restore lost symbolic authority."],
+            "when": ["Immediately—before the swirling crowd settles on violent unanimity."]
+          },
+          "King Kalaniʻōpuʻu": {
+            "beliefs": ["Understands crowd’s frantic reinterpretation—collective sentiment turned against Cook."],
+            "desires": ["Channel communal fury to repel Cook’s threat."],
+            "intentions": ["Subtly signal chiefs, warriors to collectively confront Cook."],
+            "what": ["Raising a hand or giving a shout that incites group action"],
+            "why": ["Unified communal energy can overpower Cook’s lone attempt."],
+            "when": ["In the next moments, as Cook reaches out, the crowd must act now."]
+          },
+          "Lono Priest (Kaʻōʻō)": {
+            "beliefs": ["Communal symbolic currents in flux: Cook’s aura shattered collectively."],
+            "desires": ["Rouse the group with improvised chants to reject Cook’s status."],
+            "intentions": ["Lead spontaneous cries that focus communal anger on Cook."],
+            "what": ["Shouting evolving prayers, whipping the crowd into symbolic frenzy"],
+            "why": ["Collective ritual noise can disorient Cook and deny his divine claim."],
+            "when": ["Right now, as Cook attempts the hostage act, transform crowd energy."]
+          },
+          "High-Ranking Chief (Palea)": {
+            "beliefs": ["Crowd’s mood shifts resources, alliances instantly."],
+            "desires": ["Form a quick, fluid alliance of chiefs and warriors to counter Cook."],
+            "intentions": ["Call out for spontaneous help, distribute weapons improvisedly."],
+            "what": ["Gesturing to others, tossing spears around haphazardly"],
+            "why": ["Collective spontaneity grants strength in this chaotic moment."],
+            "when": ["This instant—before Cook can complete his grab."]
+          },
+          "Hawaiian Warrior": {
+            "beliefs": ["Collective fury justifies joining others in a chaotic charge."],
+            "desires": ["Act with the crowd’s energy, turning confusion into group force."],
+            "intentions": ["Launch a communal, frenzied assault on Cook in unison with others."],
+            "what": ["Rushing forward alongside other warriors, yelling and brandishing weapons"],
+            "why": ["Shared rage and confusion amplify individual strength into a communal blow."],
+            "when": ["At once, as the crowd surges on Cook’s approach."]
+          },
+          "British Officer": {
+            "beliefs": ["Faces a chaotic, collectively hostile mass, no clear pattern."],
+            "desires": ["Group with other officers, try a defensive cluster."],
+            "intentions": ["Call crew together, form a hasty line, rely on each other."],
+            "what": ["Yelling for sailors to huddle, raising a musket with shaky aim"],
+            "why": ["Collective European order might resist chaotic native moves."],
+            "when": ["Immediately, as crowd’s energy peaks, must not stand alone."]
+          },
+          "British Crew Member": {
+            "beliefs": ["Overwhelmed by communal hostility, safety lies in sticking together."],
+            "desires": ["Cling to fellow sailors for collective defense."],
+            "intentions": ["Huddle with others, lift weapons as a cluster."],
+            "what": ["Pressing shoulder-to-shoulder with mates, weapon raised collectively"],
+            "why": ["Strength in numbers might hold off the unpredictable mob."],
+            "when": ["Now—every second without grouping is perilous."]
+          }
+        }
+    },
+    {
+        "title": "Symbolic - Collective - Negentropic",
+        "params": "P<50, I≥50, E≥50",
+        "desc": "A stable communal interpretation: the group uniformly and orderly denies Cook’s divine status.",
+        "p": 25, "i": 75, "e": 75,
+        "bdi": {
+          "Captain Cook": {
+            "beliefs": ["Sees a unified, orderly rejection of his divine claim."],
+            "desires": ["Disrupt their stable unity by a calculated hostage attempt."],
+            "intentions": ["Take the King hostage precisely, expecting a predictable collective reaction."],
+            "what": ["Advancing methodically to grab the King, hoping for a controlled outcome"],
+            "why": ["A neat display of force might break the communal front."],
+            "when": ["Right now, in this orderly confrontation, before they retaliate in unison."]
+          },
+          "King Kalaniʻōpuʻu": {
+            "beliefs": ["Knows people stand as one, systematically countering Cook."],
+            "desires": ["Sustain a stable formation that secures resources and sovereignty."],
+            "intentions": ["Signal chiefs and priests to hold a firm, orderly line against Cook."],
+            "what": ["Standing calmly as warriors form a disciplined barrier around him"],
+            "why": ["Organized unity ensures Cook cannot exploit confusion."],
+            "when": ["Immediately, as Cook attempts a methodical hostage action."]
+          },
+          "Lono Priest (Kaʻōʻō)": {
+            "beliefs": ["Ritual order and collective symbolism align to oppose Cook."],
+            "desires": ["Reinforce stable symbolic order guiding collective stance."],
+            "intentions": ["Intone measured hymns confirming Cook’s fall and communal resolve."],
+            "what": ["Reciting calm, synchronized chants, anchoring group’s interpretation"],
+            "why": ["Shared ritual order cements the group’s stance against Cook."],
+            "when": ["Immediately, as Cook approaches, to keep everyone steady."]
+          },
+          "High-Ranking Chief (Palea)": {
+            "beliefs": ["Collective order allows optimal resource/warrior placement."],
+            "desires": ["Achieve strategic placement of fighters in a structured pattern."],
+            "intentions": ["Direct warriors into geometric formations blocking Cook."],
+            "what": ["Giving quiet, clear signals, aligning warriors in neat rows"],
+            "why": ["Well-structured defense exploits Cook’s predictable move."],
+            "when": ["Right now, before Cook can exploit any gap in formation."]
+          },
+          "Hawaiian Warrior": {
+            "beliefs": ["Understands exact role in a disciplined collective force."],
+            "desires": ["Perform assigned defensive duty flawlessly."],
+            "intentions": ["Hold position until the perfect communal cue to act."],
+            "what": ["Standing at a predetermined spot, spear angled precisely"],
+            "why": ["Discipline ensures group success and minimal risk."],
+            "when": ["At the critical moment Cook tries to seize the King."]
+          },
+          "British Officer": {
+            "beliefs": ["Sees well-organized resistance, no easy intimidation."],
+            "desires": ["Counter with disciplined European formations."],
+            "intentions": ["Arrange crew in a proper defensive formation, step by step."],
+            "what": ["Commanding sailors into neat ranks, muskets readied in order"],
+            "why": ["Established protocols can counter a well-ordered Hawaiian defense."],
+            "when": ["Right now, no delay in implementing known tactics."]
+          },
+          "British Crew Member": {
+            "beliefs": ["Trusts officers’ instructions for stable outcomes."],
+            "desires": ["Follow orders meticulously, execute tasks exactly."],
+            "intentions": ["Stand exactly as ordered, reload efficiently, maintain discipline."],
+            "what": ["Positioned precisely, handing cartridges to gunners as instructed"],
+            "why": ["Collective discipline guarantees best survival odds."],
+            "when": ["This moment, every action timed to perfection."]
+          }
+        }
+    },
+    {
+        "title": "Practical - Individual - Entropic",
+        "params": "P≥50, I<50, E<50",
+        "desc": "Everyone acts for personal gain in a chaotic environment, no stable ritual or communal approach.",
+        "p": 75, "i": 25, "e": 25,
+        "bdi": {
+          "Captain Cook": {
+            "beliefs": ["No ritual logic matters, just brute force. Thinks a quick snatch might work."],
+            "desires": ["Instant personal advantage by seizing the King."],
+            "intentions": ["Act fast, hoping confusion grants escape."],
+            "what": ["Lunging abruptly at the King without a plan"],
+            "why": ["Personal survival and leverage in chaos."],
+            "when": ["Right now, before anyone stabilizes the situation."]
+          },
+          "King Kalaniʻōpuʻu": {
+            "beliefs": ["Sees a raw power struggle, no communal buffer."],
+            "desires": ["Secure personal safety, maybe call a nearby guard."],
+            "intentions": ["Attempt quick personal retreat."],
+            "what": ["Backstepping, looking for a direct escape route"],
+            "why": ["To avoid being taken hostage in a chaotic grab."],
+            "when": ["Immediately, before Cook’s hands close in."]
+          },
+          "Lono Priest (Kaʻōʻō)": {
+            "beliefs": ["Ritual logic collapsed; seeks personal benefit or safety."],
+            "desires": ["Protect personal status, maybe get a European tool."],
+            "intentions": ["Small personal gestures, avoiding risk."],
+            "what": ["Edging away, eyeing any dropped European item"],
+            "why": ["Personal gain from immediate opportunities, no stable ritual to follow."],
+            "when": ["In these seconds of confusion, before clarity returns."]
+          },
+          "High-Ranking Chief (Palea)": {
+            "beliefs": ["Sees opportunities amid chaos: personal gain paramount."],
+            "desires": ["Seize valuables or advantage individually."],
+            "intentions": ["Dart in or out, choosing best personal outcome."],
+            "what": ["Ready to grab a European weapon if it appears accessible"],
+            "why": ["Chaos is fertile ground for personal enrichment."],
+            "when": ["Now—every moment of hesitation loses opportunity."]
+          },
+          "Hawaiian Warrior": {
+            "beliefs": ["Personal honor demands immediate response, no collective needed."],
+            "desires": ["Strike Cook if beneficial personally."],
+            "intentions": ["Act impulsively on individual impulse."],
+            "what": ["Rushing forward alone to confront Cook"],
+            "why": ["Personal glory or revenge in a power vacuum."],
+            "when": ["Right away, as chaos peaks, acting first is best."]
+          },
+          "British Officer": {
+            "beliefs": ["No ritual, no plan—just survive personally."],
+            "desires": ["Maintain self-preservation, maybe secure a path to boats."],
+            "intentions": ["Might fire a pistol alone, fend for oneself."],
+            "what": ["Raising a weapon at anyone who approaches too close"],
+            "why": ["No communal strategy, personal action might deter threats."],
+            "when": ["Instantly, before encircled by hostile individuals."]
+          },
+          "British Crew Member": {
+            "beliefs": ["Survival is personal, no group formation forming."],
+            "desires": ["Find personal escape route or hiding spot."],
+            "intentions": ["Dodge attacks individually, no reliance on others."],
+            "what": ["Scrambling behind crates, ready to run"],
+            "why": ["Personal safety trumps all in chaos."],
+            "when": ["At once—delay risks personal harm."]
+          }
+        }
+    },
+    {
+        "title": "Practical - Individual - Negentropic",
+        "params": "P≥50, I<50, E≥50",
+        "desc": "Each follows a personal, logical plan, but not aligning with others. A rational, orderly mindset per individual.",
+        "p": 75, "i": 25, "e": 75,
+        "bdi": {
+          "Captain Cook": {
+            "beliefs": ["Rationally thinks a hostage-taking is a neat solution."],
+            "desires": ["Impose order by personal calculated force."],
+            "intentions": ["Execute the hostage plan precisely."],
+            "what": ["Stepping forward deliberately to grab the King"],
+            "why": ["Believes a neat demonstration of control will restore order."],
+            "when": ["Now, before anyone else adjusts their personal plans."]
+          },
+          "King Kalaniʻōpuʻu": {
+            "beliefs": ["Rationally sees Cook as a threat, no ritual needed."],
+            "desires": ["Uphold dignity and protect resources alone."],
+            "intentions": ["Retreat in a measured, personal manner."],
+            "what": ["Calmly stepping backward, keeping distance"],
+            "why": ["Logical personal action prevents immediate capture."],
+            "when": ["Immediately, before Cook finalizes the grab."]
+          },
+          "Lono Priest (Kaʻōʻō)": {
+            "beliefs": ["Ritual meaning is stable personally, no group alignment."],
+            "desires": ["Maintain personal ritual order internally."],
+            "intentions": ["Whisper structured prayers alone."],
+            "what": ["Standing aside, chanting softly to maintain personal spiritual clarity"],
+            "why": ["Personal ritual purity amidst conflict."],
+            "when": ["Right now, as Cook moves, preserve personal ritual timeline."]
+          },
+          "High-Ranking Chief (Palea)": {
+            "beliefs": ["Individual logic: secure resources methodically, no collective."],
+            "desires": ["Ensure personal asset protection."],
+            "intentions": ["Move to guard personal goods, ignoring others."],
+            "what": ["Positioning near a stash of resources to protect them alone"],
+            "why": ["Methodical personal optimization of outcome."],
+            "when": ["This moment, before any other agent interferes."]
+          },
+          "Hawaiian Warrior": {
+            "beliefs": ["Personal code dictates a structured, personal reaction to threat."],
+            "desires": ["Respond logically if attacking Cook benefits personal honor."],
+            "intentions": ["Wait for a rational personal cue to strike."],
+            "what": ["Standing firm, weapon ready, calculating best strike moment"],
+            "why": ["A logical personal approach ensures effective action."],
+            "when": ["In these tense seconds, as soon as Cook commits."]
+          },
+          "British Officer": {
+            "beliefs": ["Individual rational approach: handle conflict step-by-step."],
+            "desires": ["Maintain personal composure and defense."],
+            "intentions": ["Stand guard methodically, possibly fire a warning shot."],
+            "what": ["Carefully aiming musket, considering a warning shot alone"],
+            "why": ["Believes a reasoned personal act can deter aggression."],
+            "when": ["Immediately, to prevent escalation."]
+          },
+          "British Crew Member": {
+            "beliefs": ["Personal caution and order: find a stable spot alone."],
+            "desires": ["Stay safe by following personal routines."],
+            "intentions": ["Hold position behind cover, watch quietly."],
+            "what": ["Hiding behind a rock, tools at hand, calmly waiting"],
+            "why": ["A rational solitary stance ensures personal safety."],
+            "when": ["Right now, each second of calm observation counts."]
+          }
+        }
+    },
+    {
+        "title": "Practical - Collective - Entropic",
+        "params": "P≥50, I≥50, E<50",
+        "desc": "A collective practical stance but spatially and contextually chaotic. The group tries to coordinate resource advantage in confusion.",
+        "p": 75, "i": 75, "e": 25,
+        "bdi": {
+          "Captain Cook": {
+            "beliefs": ["Collective European force may restore order, despite spatial chaos."],
+            "desires": ["Rally officers/crew to seize King collectively."],
+            "intentions": ["Shout orders, attempt a group formation quickly."],
+            "what": ["Calling officers together, trying to grab the King as a team"],
+            "why": ["Hopes collective European action beats chaotic conditions."],
+            "when": ["Now, before Hawaiians adapt and close ranks."]
+          },
+          "King Kalaniʻōpuʻu": {
+            "beliefs": ["Hawaiians can collectively respond even in chaos."],
+            "desires": ["Use group strength flexibly to retain sovereignty."],
+            "intentions": ["Signal chiefs to form an adaptive barrier."],
+            "what": ["Waving hand, yelling short commands to gather allies in a loose cluster"],
+            "why": ["Collective resource and strategic pooling counters Cook’s attempt."],
+            "when": ["At once, as Cook tries for the King."]
+          },
+          "Lono Priest (Kaʻōʻō)": {
+            "beliefs": ["Group adaptability blends ritual hints into practical coordination."],
+            "desires": ["Guide communal action through shouted cues, no fixed pattern."],
+            "intentions": ["Call out directions, point where warriors should move."],
+            "what": ["Shouting improvised orders: ‘Stand there! Block him!’"],
+            "why": ["Ad-hoc communal strategy in chaotic times."],
+            "when": ["These seconds count before Cook secures a hostage."]
+          },
+          "High-Ranking Chief (Palea)": {
+            "beliefs": ["Shared resources and quick redistribution help in chaos."],
+            "desires": ["Adapt group strategies instantly."],
+            "intentions": ["Hand out weapons on the fly, reorganize positions spontaneously."],
+            "what": ["Tossing spears around, directing warriors to fill gaps on the fly"],
+            "why": ["Collective flexibility ensures no advantage to Cook."],
+            "when": ["Immediately, as Cook acts, fill any vulnerability."]
+          },
+          "Hawaiian Warrior": {
+            "beliefs": ["Following collective calls in a fluid manner works best now."],
+            "desires": ["Team up with others, swarm Cook unpredictably."],
+            "intentions": ["Move as a loose pack, shifting positions at shouted instructions."],
+            "what": ["Darting left or right as directed, staying near comrades"],
+            "why": ["Chaotic collective synergy outmaneuvers Cook’s attempt."],
+            "when": ["Right now—split seconds before Cook grabs the King."]
+          },
+          "British Officer": {
+            "beliefs": ["Hopes collective European order can emerge despite chaos."],
+            "desires": ["Corral crew into a rough group defense."],
+            "intentions": ["Yell for sailors to cluster, form an impromptu line."],
+            "what": ["Calling crew to gather, pointing where to stand amidst turmoil"],
+            "why": ["A loose but shared defense might counter chaotic native moves."],
+            "when": ["Immediately, before scattered crew are picked off."]
+          },
+          "British Crew Member": {
+            "beliefs": ["Safety through sticking with fellow crew in unpredictable conditions."],
+            "desires": ["Huddle together, share resources spontaneously."],
+            "intentions": ["Move towards others, help distribute ammo or hold lines."],
+            "what": ["Rushing towards shipmates, handing out spare musket balls"],
+            "why": ["Collective improvised teamwork ensures better odds."],
+            "when": ["Now, before isolation leads to vulnerability."]
+          }
+        }
+    },
+    {
+        "title": "Practical - Collective - Negentropic",
+        "params": "P≥50, I≥50, E≥50",
+        "desc": "Well-ordered collective approaches. Each side forms structured groups, Hawaiians aligned to resist Cook efficiently.",
+        "p": 75, "i": 75, "e": 75,
+        "bdi": {
+          "Captain Cook": {
+            "beliefs": ["Both sides form structured units. A neat hostage action may still work."],
+            "desires": ["Lead crew in a disciplined attempt to capture the King."],
+            "intentions": ["Give precise orders for a controlled advance."],
+            "what": ["Positioning officers and crew in perfect formation before grabbing King"],
+            "why": ["Hopes a well-planned move overcomes Hawaiian order."],
+            "when": ["Right now, as all sides are poised in deliberate arrays."]
+          },
+          "King Kalaniʻōpuʻu": {
+            "beliefs": ["Hawaiians maintain a unified, ordered defense."],
+            "desires": ["Sustain a stable formation that secures resources and sovereignty."],
+            "intentions": ["Stand at center, chiefs and warriors arrayed systematically."],
+            "what": ["Remaining calm at the formation’s heart, shielded by aligned warriors"],
+            "why": ["Organized unity ensures Cook cannot exploit confusion."],
+            "when": ["Immediately, as Cook attempts a methodical hostage action."]
+          },
+          "Lono Priest (Kaʻōʻō)": {
+            "beliefs": ["Ritual and practical measures integrated in communal stability."],
+            "desires": ["Reinforce stable symbolic order guiding collective stance."],
+            "intentions": ["Recite measured chants, aligning everyone’s timing."],
+            "what": ["Calm chanting ensuring everyone moves in sync"],
+            "why": ["Cultural coherence supports practical, disciplined defense."],
+            "when": ["Now, ensuring no second of disharmony emerges."]
+          },
+          "High-Ranking Chief (Palea)": {
+            "beliefs": ["Collective order allows optimal resource/warrior placement."],
+            "desires": ["Position fighters and assets in a precise pattern."],
+            "intentions": ["Direct warriors into geometric formations blocking Cook."],
+            "what": ["Issuing quiet, strategic commands to place each warrior perfectly"],
+            "why": ["A flawless arrangement denies Cook any advantage."],
+            "when": ["In these final moments before contact."]
+          },
+          "Hawaiian Warrior": {
+            "beliefs": ["Understands exact assigned role in the structured defense."],
+            "desires": ["Perform precisely as directed, ensuring collective efficacy."],
+            "intentions": ["Hold line until the exact cue to act."],
+            "what": ["Standing in assigned spot, spear steady, eyes on Cook"],
+            "why": ["Discipline ensures group success and minimal risk."],
+            "when": ["At the critical moment Cook tries to seize the King."]
+          },
+          "British Officer": {
+            "beliefs": ["European discipline can match Hawaiian organization."],
+            "desires": ["Form a rigid formation, use standard tactics."],
+            "intentions": ["Order crew into ranks, prepare a controlled maneuver."],
+            "what": ["Aligning sailors, ensuring front row kneels, rear row aims weapons"],
+            "why": ["Established protocols can counter a well-ordered Hawaiian defense."],
+            "when": ["Right now, no delay in implementing known tactics."]
+          },
+          "British Crew Member": {
+            "beliefs": ["Trusts officers’ instructions for stable outcomes."],
+            "desires": ["Follow orders meticulously, execute tasks exactly."],
+            "intentions": ["Stand where told, pass ammo, maintain formation."],
+            "what": ["Positioned precisely, handing cartridges to gunners as instructed"],
+            "why": ["Collective discipline guarantees best survival odds."],
+            "when": ["This moment, every action timed to perfection."]
+          }
+        }
+    }
+];
+
+        const cardsContainer = d3.select("#archetype-cards");
+        const descriptionP = d3.select("#description");
+
+        const cardSel = cardsContainer.selectAll(".archetype-card")
+            .data(scenarios)
+            .enter().append("div")
+            .attr("class", "archetype-card")
+            .on("click", (event, d) => {
+                document.getElementById('practical-symbolic').value = d.p;
+                document.getElementById('individual-collective').value = d.i;
+                document.getElementById('entropic-negentropic').value = d.e;
+                currentScenario = d; 
+                scenarioMode = true;
+                culturalModel.updateModel(d.p, d.i, d.e);
+                showBDI(d);
+            });
+
+        cardSel.append("div").attr("class", "archetype-title").text(d => d.title);
+        cardSel.append("div").attr("class", "archetype-params").text(d => d.params);
+        cardSel.append("div").attr("class", "archetype-desc").text(d => d.desc);
+
+        function showBDI(scenario) {
+            let html = `<strong>${scenario.title}</strong><br>${scenario.desc}<br><br>`;
+            html += `<strong>Just before Captain Cook’s death scenario:</strong><br>
+            Each node represents an agent. Hover over a node to see that agent’s Beliefs, Desires, Intentions, and What/Why/When.<br><br>`;
+            descriptionP.html(html);
+        }
+
+        function showInstructions() {
+            if (!scenarioMode) {
+                currentScenario = null;
+                descriptionP.html(`Adjust the sliders to shape the cultural landscape.<br>
+                <strong>Practical ↔ Symbolic:</strong> transitions node shape and color. Near Symbolic: more rounded, red/pink tones; Near Practical: more square, blue/teal tones; Middle: neutral grays/purples with variation.<br>
+                <strong>Individual ↔ Collective:</strong> influences link density and clustering. Individual = fewer links, possibly isolated nodes; Collective = denser, stronger links.<br>
+                <strong>Entropic ↔ Negentropic:</strong> Entropic = random layouts; Negentropic = grid-like, orderly arrangements.
+                `);
+            }
+        }
+
+        // Tooltip
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("display", "none");
+
+        class CulturalSystemModel {
+            constructor(svg) {
+                this.svg = svg;
+                this.width = svg.node().clientWidth;
+                this.height = svg.node().clientHeight;
+                this.nodes = [];
+                this.links = [];
+                this.simulation = null;
+                this.nodeSelection = null;
+                this.linkSelection = null;
+                
+                // Key agents to track
+                this.keyAgents = [
+                    "Captain Cook",
+                    "King Kalaniʻōpuʻu",
+                    "Lono Priest (Kaʻōʻō)",
+                    "High-Ranking Chief (Palea)",
+                    "Hawaiian Warrior",
+                    "British Officer",
+                    "British Crew Member"
+                ];
+            }
+
+            initialize(p = 50, i = 50, e = 50) {
+                this.p = p;
+                this.i = i;
+                this.e = e;
+
+                this.nodes = [];
+                this.links = [];
+
+                // Create key agent nodes first
+                this.keyAgents.forEach((role, idx) => {
+                    const node = {
+                        id: idx,
+                        role: role,
+                        isKeyAgent: true,
+                        symbolism: this.adjustParameter(Math.random(), this.p),
+                        practicality: this.adjustParameter(Math.random(), 100 - this.p),
+                        collectivity: this.adjustParameter(Math.random(), this.i),
+                        confidence: this.calculateConfidence(this.e),
+                        shapeBias: (Math.random()*0.4 - 0.2),
+                        colorJitter: Math.random()*0.2 - 0.1
+                    };
+                    this.nodes.push(node);
+                });
+
+                // Add remaining nodes
+                for (let idx = this.keyAgents.length; idx < 50; idx++) {
+                    const role = roles[Math.floor(Math.random()*roles.length)];
+                    const node = {
+                        id: idx,
+                        role: role,
+                        isKeyAgent: false,
+                        symbolism: this.adjustParameter(Math.random(), this.p),
+                        practicality: this.adjustParameter(Math.random(), 100 - this.p),
+                        collectivity: this.adjustParameter(Math.random(), this.i),
+                        confidence: this.calculateConfidence(this.e),
+                        shapeBias: (Math.random()*0.4 - 0.2),
+                        colorJitter: Math.random()*0.2 - 0.1
+                    };
+                    this.nodes.push(node);
+                }
+
+                let collectiveFactor = (this.i >= 50) ? 1.5 : 0.5;
+
+                this.nodes.forEach((node, idx) => {
+                    for (let j = idx+1; j < this.nodes.length; j++){
+                        const otherNode = this.nodes[j];
+                        let connectionProbability = this.calculateConnectionProbability(node, otherNode);
+                        connectionProbability *= collectiveFactor;
+
+                        if (this.i < 50 && Math.random() < 0.2) {
+                            connectionProbability = 0; 
+                        }
+
+                        if (Math.random() < connectionProbability) {
+                            this.links.push({
+                                source: node,
+                                target: otherNode,
+                                strength: connectionProbability
+                            });
+                        }
+                    }
+                });
+
+                this.createVisualization();
+            }
+
+            adjustParameter(value, sliderValue) {
+                return Math.min(1, Math.max(0, value + (sliderValue - 50)/50));
+            }
+
+            calculateConfidence(e) {
+                return Math.abs(Math.sin(e * Math.PI / 100));
+            }
+
+            calculateConnectionProbability(node1, node2) {
+                const baseProb = Math.abs(node1.symbolism - node2.symbolism) + Math.abs(node1.collectivity - node2.collectivity);
+                return Math.min(1, baseProb * (this.e / 50));
+            }
+
+            createColorScale(p) {
+                return d3.scaleSequential()
+                    .domain([0, 100])
+                    .interpolator(d3.interpolateRgb(
+                        d3.rgb(0, 180, 0),  // Green for symbolic
+                        d3.rgb(0, 0, 255)   // Blue for practical
+                    ));
+            }
+
+            createVisualization() {
+                this.svg.selectAll("*").remove();
+
+                const isNegentropic = (this.e >= 50);
+                const colorFn = this.createColorScale(this.p);
+
+                // Create container for labels (now hidden by default)
+                const labelContainer = this.svg.append("g")
+                    .attr("class", "labels")
+                    .style("opacity", 0);  // Hidden by default
+
+                let linkDistance = (this.i >= 50) ? 40 : 100;
+                let linkStrength = (this.i >= 50) ? 0.2 : 0.05;
+
+                this.simulation = d3.forceSimulation(this.nodes)
+                    .force("charge", d3.forceManyBody().strength(-20))
+                    .force("center", d3.forceCenter(this.width / 2, this.height / 2))
+                    .force("link", d3.forceLink(this.links).distance(linkDistance).strength(linkStrength));
+
+                // Create links
+                this.linkSelection = this.svg.selectAll(".link")
+                    .data(this.links)
+                    .enter().append("line")
+                    .attr("class", "link")
+                    .style("stroke-width", d => 1.5)
+                    .style("stroke-opacity", 0.6)
+                    .style("stroke", d => `rgba(0,0,0,${d.strength})`);
+
+                const nodeSize = d => d.isKeyAgent ? (15 + 20*d.confidence) : (8 + 15*d.confidence);
+
+                // Create nodes
+                this.nodeSelection = this.svg.selectAll(".node")
+                    .data(this.nodes)
+                    .enter().append("rect")
+                    .attr("class", d => d.isKeyAgent ? "node key-agent" : "node")
+                    .attr("width", nodeSize)
+                    .attr("height", nodeSize)
+                    .style("fill", d => {
+                        const color = colorFn(this.p);
+                        return d.isKeyAgent ? d3.color(color).brighter(0.5) : color;
+                    })
+                    .style("opacity", d => d.isKeyAgent ? 1 : 0.7)
+                    .style("stroke", d => d.isKeyAgent ? "#000" : "none")
+                    .style("stroke-width", d => d.isKeyAgent ? 2 : 0)
+                    .attr("rx", d => {
+                        let baseRadius = (nodeSize(d)/2)*(1 - this.p/100);
+                        return Math.max(0, Math.min(nodeSize(d)/2, baseRadius + d.shapeBias*(nodeSize(d)/2)));
+                    })
+                    .attr("ry", d => {
+                        let baseRadius = (nodeSize(d)/2)*(1 - this.p/100);
+                        return Math.max(0, Math.min(nodeSize(d)/2, baseRadius + d.shapeBias*(nodeSize(d)/2)));
+                    })
+                    .on("mouseover", (event, d) => {
+                        this.showTooltip(event, d);
+                        // Show labels when hovering
+                        labelContainer.style("opacity", 1);
+                    })
+                    .on("mouseout", () => {
+                        this.hideTooltip();
+                        // Hide labels when not hovering
+                        labelContainer.style("opacity", 0);
+                    });
+
+                // Add labels for key agents
+                const labels = labelContainer.selectAll(".label")
+                    .data(this.nodes.filter(d => d.isKeyAgent))
+                    .enter().append("text")
+                    .attr("class", "agent-label")
+                    .text(d => d.role)
+                    .style("font-size", "10px")
+                    .style("fill", "#333")
+                    .style("pointer-events", "none");
+
+                // Add drag behavior
+                this.nodeSelection.call(d3.drag()
+                    .on("start", (event, d) => this.dragstarted(event, d))
+                    .on("drag", (event, d) => this.dragged(event, d))
+                    .on("end", (event, d) => this.dragended(event, d)));
+
+                // Update positions on tick
+                this.simulation.on("tick", () => {
+                    this.linkSelection
+                        .attr("x1", d => d.source.x)
+                        .attr("y1", d => d.source.y)
+                        .attr("x2", d => d.target.x)
+                        .attr("y2", d => d.target.y);
+
+                    this.nodeSelection
+                        .attr("x", d => d.x - nodeSize(d)/2)
+                        .attr("y", d => d.y - nodeSize(d)/2);
+
+                    labels
+                        .attr("x", d => d.x + nodeSize(d)/2 + 5)
+                        .attr("y", d => d.y + nodeSize(d)/2);
+                });
+            }
+
+            getAgentProfile(role, archetypes) {
+                // Find the most appropriate scenario based on archetype probabilities
+                let bestScenario = this.selectBestScenario(archetypes);
+                if (!bestScenario || !bestScenario.bdi || !bestScenario.bdi[role]) {
+                    console.warn(`No profile found for role: ${role}`);
+                    return null;
+                }
+
+                const profile = bestScenario.bdi[role];
+                return {
+                    beliefs: profile.beliefs,
+                    desires: profile.desires,
+                    intentions: profile.intentions,
+                    what: profile.what,
+                    why: profile.why,
+                    when: profile.when
+                };
+            }
+
+            selectBestScenario(archetypes) {
+                // Convert archetypes to P/I/E values
+                const p = (archetypes["Practical Individual"] + archetypes["Practical Collective"]) * 100;
+                const i = (archetypes["Symbolic Collective"] + archetypes["Practical Collective"]) * 100;
+                const e = 50; // Default to medium entropy
+
+                // Find scenario with closest matching parameters
+                let bestMatch = null;
+                let smallestDiff = Infinity;
+
+                for (const scenario of scenarios) {
+                    const diff = Math.abs(scenario.p - p) + 
+                               Math.abs(scenario.i - i) + 
+                               Math.abs(scenario.e - e);
+                    
+                    if (diff < smallestDiff) {
+                        smallestDiff = diff;
+                        bestMatch = scenario;
+                    }
+                }
+
+                return bestMatch;
+            }
+
+            showTooltip(event, d) {
+                console.log('ShowTooltip called for:', {
+                    role: d.role,
+                    isKeyAgent: d.isKeyAgent
+                });
+
+                const tooltip = d3.select(".tooltip");
+                
+                tooltip.style("display", "block")
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 10) + "px");
+
+                let content = `<strong>${d.role}</strong>`;
+                if (d.isKeyAgent) {
+                    content += ` <span style="color: #666;">(Key Agent)</span>`;
+                }
+
+                // Calculate archetype probabilities
+                const archetypes = this.calculateArchetypeProbabilities(d);
+                
+                // Get profile based on archetypes
+                const profile = this.getAgentProfile(d.role, archetypes);
+
+                if (profile) {
+                    console.log('Found profile data:', profile);
+
+                    const addSection = (title, items) => {
+                        if (items && Array.isArray(items) && items.length) {
+                            content += `<div class="tooltip-section">
+                                <strong>${title}:</strong>
+                                <div class="tooltip-content">${items[0]}</div>
+                            </div>`;
+                        } else if (items && typeof items === 'string') {
+                            content += `<div class="tooltip-section">
+                                <strong>${title}:</strong>
+                                <div class="tooltip-content">${items}</div>
+                            </div>`;
+                        }
+                    };
+
+                    // Add archetype probabilities
+                    content += `<div class="archetype-probs">
+                        ${Object.entries(archetypes)
+                            .map(([key, value]) => `${key}: ${(value * 100).toFixed(1)}%`)
+                            .join('<br>')}
+                    </div>`;
+
+                    // Add profile data
+                    addSection('Beliefs', profile.beliefs);
+                    addSection('Desires', profile.desires);
+                    addSection('Intentions', profile.intentions);
+                    addSection('What', profile.what);
+                    addSection('Why', profile.why);
+                    addSection('When', profile.when);
+                }
+
+                tooltip.html(content);
+
+                // Add CSS for tooltip styling
+                const style = document.createElement('style');
+                style.textContent = `
+                    .tooltip-section {
+                        margin: 8px 0;
+                        font-size: 12px;
+                    }
+                    .tooltip-content {
+                        margin: 3px 0;
+                        color: #444;
+                        line-height: 1.4;
+                    }
+                    .archetype-probs {
+                        margin-top: 8px;
+                        padding: 5px;
+                        background: rgba(245,245,245,0.9);
+                        border-radius: 4px;
+                        font-size: 11px;
+                        color: #666;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            hideTooltip() {
+                tooltip.style("display", "none");
+            }
+
+            dragstarted(event, d) {
+                if (!event.active) this.simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            dragended(event, d) {
+                if (!event.active) this.simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+            updateModel(p, i, e) {
+                scenarioMode = false;
+                currentScenario = null;
+                showInstructions();
+                this.initialize(p, i, e);
+            }
+
+            calculateArchetypeProbabilities(node) {
+                // Calculate probabilities based on node properties and current P/I/E values
+                const archetypes = {
+                    "Symbolic Individual": 0,
+                    "Symbolic Collective": 0,
+                    "Practical Individual": 0,
+                    "Practical Collective": 0
+                };
+
+                // Base probability on node's properties and current P/I/E values
+                const symbolicProb = 1 - (this.p / 100);
+                const collectiveProb = this.i / 100;
+
+                archetypes["Symbolic Individual"] = symbolicProb * (1 - collectiveProb) * node.symbolism;
+                archetypes["Symbolic Collective"] = symbolicProb * collectiveProb * node.symbolism;
+                archetypes["Practical Individual"] = (1 - symbolicProb) * (1 - collectiveProb) * node.practicality;
+                archetypes["Practical Collective"] = (1 - symbolicProb) * collectiveProb * node.practicality;
+
+                // Normalize probabilities
+                const total = Object.values(archetypes).reduce((a, b) => a + b, 0);
+                Object.keys(archetypes).forEach(key => {
+                    archetypes[key] = archetypes[key] / total;
+                });
+
+                return archetypes;
+            }
+        }
+
+        const svg = d3.select("#interaction-field")
+            .append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%");
+
+        const culturalModel = new CulturalSystemModel(svg);
+        culturalModel.initialize(50,50,50);
+
+        ['practical-symbolic', 'individual-collective', 'entropic-negentropic'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                culturalModel.updateModel(
+                    +document.getElementById('practical-symbolic').value,
+                    +document.getElementById('individual-collective').value,
+                    +document.getElementById('entropic-negentropic').value
+                );
+            });
+        });
+    </script>
+</body>
+</html>
